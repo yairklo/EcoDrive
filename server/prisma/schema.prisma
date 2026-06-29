@@ -28,6 +28,18 @@ model Vehicle {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
   refuelLogs   RefuelLog[]
+  tripSyncs    TripSync[]
+}
+
+model TripSync {
+  id                    String   @id @default(uuid())
+  vehicleId             String
+  vehicle               Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  timestamp             DateTime @default(now())
+  distanceCityKm        Float
+  distanceHighwayKm     Float
+  accelerationPenaltyMl Float
+  createdAt             DateTime @default(now())
 }
 
 model RefuelLog {

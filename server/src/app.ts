@@ -34,6 +34,7 @@ export const buildApp = () => {
   app.register(import('./routes/auth'), { prefix: '/api/auth' });
   app.register(import('./routes/vehicle'), { prefix: '/api/vehicles' });
   app.register(import('./routes/refuel'), { prefix: '/api/refuel' });
+  app.register(import('./routes/trip'), { prefix: '/api/trips' });
 
   // Centralized Error Handler
   app.setErrorHandler((error, request, reply) => {
