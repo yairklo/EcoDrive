@@ -20,7 +20,7 @@
       "package": "com.yairklo.client",
       "config": {
         "googleMaps": {
-          "apiKey": "DUMMY_KEY_TO_PREVENT_CRASH_UNTIL_USER_ADDS_REAL_KEY"
+          "apiKey": "${GOOGLE_MAPS_API_KEY}"
         }
       },
       "permissions": [

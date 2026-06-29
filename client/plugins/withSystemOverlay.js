@@ -17,6 +17,31 @@ const withSystemOverlay = (config) => {
         $: { 'android:name': 'android.permission.SYSTEM_ALERT_WINDOW' },
       });
     }
+    
+    // Add Waze and Geo intent queries for Android 11+
+    if (!androidManifest.manifest.queries) {
+      androidManifest.manifest.queries = [];
+    }
+    
+    // Push the intents safely into the queries array
+    const queriesArray = androidManifest.manifest.queries;
+    if (queriesArray.length === 0 || !queriesArray[0].intent) {
+      queriesArray[0] = { intent: [] };
+    }
+    
+    const intents = queriesArray[0].intent;
+    const hasWaze = intents.some(i => i.data && i.data.some(d => d.$['android:scheme'] === 'waze'));
+    if (!hasWaze) {
+      intents.push({
+        action: [{ $: { 'android:name': 'android.intent.action.VIEW' } }],
+        data: [{ $: { 'android:scheme': 'waze' } }]
+      });
+      intents.push({
+        action: [{ $: { 'android:name': 'android.intent.action.VIEW' } }],
+        data: [{ $: { 'android:scheme': 'geo' } }]
+      });
+    }
+    
     return config;
   });
 
@@ -86,12 +111,13 @@ public class SystemOverlayModule extends ReactContextBaseJavaModule {
     public void showOverlay(String title, String colorHex) {
         new Handler(Looper.getMainLooper()).post(() -> {
             try {
+                Context appContext = getReactApplicationContext().getApplicationContext();
                 if (windowManager == null) {
-                    windowManager = (WindowManager) getReactApplicationContext().getSystemService(Context.WINDOW_SERVICE);
+                    windowManager = (WindowManager) appContext.getSystemService(Context.WINDOW_SERVICE);
                 }
 
                 if (overlayView == null) {
-                    overlayView = new TextView(getReactApplicationContext());
+                    overlayView = new TextView(appContext);
                     titleView = (TextView) overlayView;
                     titleView.setTextSize(18);
                     titleView.setTextColor(Color.WHITE);
@@ -115,7 +141,8 @@ public class SystemOverlayModule extends ReactContextBaseJavaModule {
                                 ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY 
                                 : WindowManager.LayoutParams.TYPE_PHONE,
                             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE 
-                                    | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+                                    | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+                                    | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
                             PixelFormat.TRANSLUCENT
                     );
                     params.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
