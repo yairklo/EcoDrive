@@ -3,10 +3,6 @@
   "version": "1.0.0",
   "description": "EcoDrive Application Monorepo",
   "private": true,
-  "workspaces": [
-    "client",
-    "server"
-  ],
   "scripts": {
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\""
   },
