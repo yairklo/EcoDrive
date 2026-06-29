@@ -1,13 +1,18 @@
 import * as Location from 'expo-location';
 
 export class TelemetryEngine {
-  private readonly MASS_KG = 1400; // Baseline standard vehicle mass
-  private readonly THERMAL_EFFICIENCY = 0.30; // 30% standard ICE efficiency
+  private MASS_KG = 1400; // Baseline standard vehicle mass
+  private THERMAL_EFFICIENCY = 0.30; // 30% standard ICE efficiency
   private readonly GASOLINE_ENERGY_DENSITY_J_PER_L = 34.2e6; // 34.2 MJ/L
 
   private distanceCity = 0; // meters
   private distanceHighway = 0; // meters
   private totalPenaltyML = 0; // milliliters
+
+  public setPhysics(massKg: number, efficiency: number) {
+    this.MASS_KG = massKg;
+    this.THERMAL_EFFICIENCY = efficiency;
+  }
 
   private lastLocation: Location.LocationObject | null = null;
 

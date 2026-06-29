@@ -6,7 +6,11 @@ import { TelemetryEngine } from './telemetry';
 import * as Notifications from 'expo-notifications';
 
 const LOCATION_TASK_NAME = 'background-location-task';
-const engine = new TelemetryEngine();
+export const engine = new TelemetryEngine();
+
+export function setVehiclePhysics(massKg: number, efficiency: number) {
+  engine.setPhysics(massKg, efficiency);
+}
 
 export let isTripActive = false;
 export function setIsTripActive(active: boolean) {

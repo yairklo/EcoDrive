@@ -3,8 +3,10 @@ import { z } from 'zod';
 import prisma from '../utils/prisma';
 
 const createVehicleSchema = z.object({
-  type: z.enum(['Sedan', 'SUV', 'Compact', 'Hybrid']),
-  fuelCapacity: z.number().positive(),
+  type: z.enum(['Mini/Hatchback', 'Sedan/Family', 'SUV/Crossover', 'Heavy/Commercial']),
+  fuelCapacity: z.number().min(20).max(150),
+  massKg: z.number().positive(),
+  thermalEfficiency: z.number().positive().max(1),
   clientUuid: z.string().uuid().optional(),
 });
 
@@ -32,7 +34,7 @@ export default async function vehicleRoutes(app: FastifyInstance) {
   app.post('/', async (request, reply) => {
     try {
       const decoded = request.user as any;
-      const { type, fuelCapacity, clientUuid } = createVehicleSchema.parse(request.body);
+      const { type, fuelCapacity, clientUuid, massKg, thermalEfficiency } = createVehicleSchema.parse(request.body);
 
       // Check Idempotency
       if (clientUuid) {
@@ -50,6 +52,8 @@ export default async function vehicleRoutes(app: FastifyInstance) {
           ownerId: decoded.userId,
           type,
           fuelCapacity,
+          massKg,
+          thermalEfficiency,
         },
       });
 
