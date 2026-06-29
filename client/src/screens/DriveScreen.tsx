@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking } from 'react-native';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { 
   engine, 
   setIsTripActive, 
@@ -21,7 +22,7 @@ export default function DriveScreen() {
   const [duration, setDuration] = useState(0);
   const [distance, setDistance] = useState(0);
   const [penalties, setPenalties] = useState(0);
-  const [gaugeColor, setGaugeColor] = useState('#4ade80'); // Vivid green
+  const [gaugeColor, setGaugeColor] = useState('#4ade80'); 
   
   const lastPenaltyRef = useRef(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -34,7 +35,7 @@ export default function DriveScreen() {
       subscription = await Location.watchPositionAsync(
         { accuracy: Location.Accuracy.High, distanceInterval: 5 },
         (loc) => {
-          const currentSpeed = (loc.coords.speed || 0) * 3.6; // m/s to km/h
+          const currentSpeed = (loc.coords.speed || 0) * 3.6; 
           setSpeed(currentSpeed);
         }
       );
@@ -45,7 +46,6 @@ export default function DriveScreen() {
     };
   }, []);
 
-  // Rolling metrics and penalty flashing effect
   useEffect(() => {
     if (active) {
       timerRef.current = setInterval(() => {
@@ -56,10 +56,9 @@ export default function DriveScreen() {
         const report = engine.getTelemetryReport();
         setDistance(report.distanceCityKm + report.distanceHighwayKm);
         
-        // Detect penalty jump
         if (report.accelerationPenaltyMl > lastPenaltyRef.current) {
           setPenalties(p => p + 1);
-          setGaugeColor('#ef4444'); // Flash Red
+          setGaugeColor('#ef4444'); 
           setTimeout(() => setGaugeColor('#4ade80'), 1500);
           lastPenaltyRef.current = report.accelerationPenaltyMl;
         }
@@ -84,6 +83,27 @@ export default function DriveScreen() {
     setPenalties(0);
     engine.reset();
     lastPenaltyRef.current = 0;
+  };
+
+  const openNavigationApp = async (app: 'waze' | 'gmaps') => {
+    await handleStartTrip();
+    
+    // Fallback URL for GMaps if geo:0,0 fails on some iOS devices is the https link
+    const wazeUrl = 'waze://';
+    const gmapsUrl = 'https://www.google.com/maps/search/?api=1&query=';
+    
+    const url = app === 'waze' ? wazeUrl : gmapsUrl;
+    
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert('App Not Installed', `Could not find ${app === 'waze' ? 'Waze' : 'Google Maps'} on your device. Tracking started locally.`);
+      }
+    } catch (e) {
+      Alert.alert('App Not Installed', `Could not open ${app === 'waze' ? 'Waze' : 'Google Maps'}. Tracking started locally.`);
+    }
   };
 
   const handleEndTrip = async () => {
@@ -161,6 +181,20 @@ export default function DriveScreen() {
       >
         <Text style={styles.btnText}>{active ? 'End Trip' : 'Start Trip'}</Text>
       </TouchableOpacity>
+      
+      {!active && (
+        <View style={styles.navRow}>
+          <TouchableOpacity style={styles.navBtn} onPress={() => openNavigationApp('waze')}>
+            <MaterialCommunityIcons name="waze" size={28} color="#fff" />
+            <Text style={styles.navText}>Waze</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.navBtn} onPress={() => openNavigationApp('gmaps')}>
+            <MaterialCommunityIcons name="google-maps" size={28} color="#fff" />
+            <Text style={styles.navText}>Maps</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
@@ -249,5 +283,26 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#121212',
+  },
+  navRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 20,
+    gap: 15,
+  },
+  navBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1e1e1e',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  navText: {
+    color: '#fff',
+    marginLeft: 8,
+    fontWeight: '600',
   },
 });
