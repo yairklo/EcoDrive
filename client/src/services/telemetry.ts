@@ -100,6 +100,46 @@ export class TelemetryEngine {
     };
   }
 
+  public calculateTripTradeoff(distanceKm: number, baselineSpeed: number = 115, optimizedSpeed: number = 95) {
+    if (distanceKm <= 0) return null;
+
+    const timeBaselineHours = distanceKm / baselineSpeed;
+    const timeOptimizedHours = distanceKm / optimizedSpeed;
+    const timeAddedMins = (timeOptimizedHours - timeBaselineHours) * 60;
+
+    const baseLitersPer100 = 6.0;
+    const l100Baseline = baseLitersPer100 * Math.pow(baselineSpeed / 90, 2);
+    const l100Optimized = baseLitersPer100 * Math.pow(optimizedSpeed / 90, 2);
+
+    const litersBaseline = l100Baseline * (distanceKm / 100);
+    const litersOptimized = l100Optimized * (distanceKm / 100);
+
+    const savedLiters = litersBaseline - litersOptimized;
+    const savedMoney = savedLiters * 1.50;
+
+    return {
+      timeAddedMins: timeAddedMins.toFixed(1),
+      savedLiters: savedLiters.toFixed(2),
+      savedMoney: savedMoney.toFixed(2)
+    };
+  }
+
+  public static getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371; // Radius of the earth in km
+    const dLat = TelemetryEngine.deg2rad(lat2 - lat1);
+    const dLon = TelemetryEngine.deg2rad(lon2 - lon1); 
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(TelemetryEngine.deg2rad(lat1)) * Math.cos(TelemetryEngine.deg2rad(lat2)) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2); 
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+    return R * c;
+  }
+
+  private static deg2rad(deg: number) {
+    return deg * (Math.PI/180);
+  }
+
   public getTelemetryReport() {
     return {
       distanceCityKm: this.distanceCity / 1000,

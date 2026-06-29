@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, Switch } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, Switch, TextInput, Keyboard, ActivityIndicator } from 'react-native';
+import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { 
   engine, 
   setIsTripActive, 
@@ -14,6 +15,16 @@ import {
 } from '../services/location';
 import { outbox } from '../services/outbox';
 import { addTripToHistory } from '../services/analytics';
+import { TelemetryEngine } from '../services/telemetry';
+
+const darkMapStyle = [
+  { "elementType": "geometry", "stylers": [{ "color": "#242f3e" }] },
+  { "elementType": "labels.text.stroke", "stylers": [{ "color": "#242f3e" }] },
+  { "elementType": "labels.text.fill", "stylers": [{ "color": "#746855" }] },
+  { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#38414e" }] },
+  { "featureType": "road", "elementType": "geometry.stroke", "stylers": [{ "color": "#212a37" }] },
+  { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#17263c" }] }
+];
 
 export default function DriveScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
@@ -26,19 +37,39 @@ export default function DriveScreen() {
   const [simActive, setSimActive] = useState(false);
   const [insights, setInsights] = useState<{ savedLitersPer100km: string, moneySavedPerHour: string } | null>(null);
   
+  // Maps & Routing State
+  const [currentCoords, setCurrentCoords] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searching, setSearching] = useState(false);
+  const [targetCoords, setTargetCoords] = useState<any>(null);
+  const [totalEstimatedDist, setTotalEstimatedDist] = useState<number>(0);
+  const [remainingDist, setRemainingDist] = useState<number>(0);
+  const [predictionMatrix, setPredictionMatrix] = useState<any>(null);
+
+  const mapRef = useRef<MapView>(null);
   const lastPenaltyRef = useRef(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const metricsRef = useRef<NodeJS.Timeout | null>(null);
   const simTimerRef = useRef<NodeJS.Timeout | null>(null);
   const simTickRef = useRef(0);
 
+  // Initialize Map Location
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+      let location = await Location.getCurrentPositionAsync({});
+      setCurrentCoords(location.coords);
+    })();
+  }, []);
+
   useEffect(() => {
     let subscription: Location.LocationSubscription;
-
     (async () => {
       subscription = await Location.watchPositionAsync(
         { accuracy: Location.Accuracy.High, distanceInterval: 5 },
         (loc) => {
+          setCurrentCoords(loc.coords);
           if (!simActive) {
             const currentSpeed = (loc.coords.speed || 0) * 3.6; 
             setSpeed(currentSpeed);
@@ -46,7 +77,6 @@ export default function DriveScreen() {
         }
       );
     })();
-
     return () => {
       if (subscription) subscription.remove();
     };
@@ -60,26 +90,27 @@ export default function DriveScreen() {
 
       metricsRef.current = setInterval(() => {
         const report = engine.getTelemetryReport();
-        setDistance(report.distanceCityKm + report.distanceHighwayKm);
+        const drivenDist = report.distanceCityKm + report.distanceHighwayKm;
+        setDistance(drivenDist);
         
         let currentSpeedKmh = 0;
         if (report.speedProfile.length > 0) {
           currentSpeedKmh = report.speedProfile[report.speedProfile.length - 1].speed;
         }
 
-        let targetColor = '#4ade80'; // Green
+        let targetColor = '#4ade80';
         let targetInsights = null;
 
         if (currentSpeedKmh <= 90) {
           targetColor = '#4ade80';
         } else if (currentSpeedKmh <= 105) {
-          targetColor = '#eab308'; // Yellow
+          targetColor = '#eab308';
           targetInsights = engine.getAerodynamicPrediction(currentSpeedKmh);
         } else if (currentSpeedKmh <= 120) {
-          targetColor = '#f97316'; // Orange
+          targetColor = '#f97316';
           targetInsights = engine.getAerodynamicPrediction(currentSpeedKmh);
         } else {
-          targetColor = '#ef4444'; // Red
+          targetColor = '#ef4444';
           targetInsights = engine.getAerodynamicPrediction(currentSpeedKmh);
         }
 
@@ -93,6 +124,14 @@ export default function DriveScreen() {
         }
         
         setInsights(targetInsights);
+
+        // Update Remaining Distance
+        if (totalEstimatedDist > 0) {
+          const newRemaining = Math.max(0, totalEstimatedDist - drivenDist);
+          setRemainingDist(newRemaining);
+          setPredictionMatrix(engine.calculateTripTradeoff(newRemaining));
+        }
+
       }, 1000);
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -103,9 +142,53 @@ export default function DriveScreen() {
       if (timerRef.current) clearInterval(timerRef.current);
       if (metricsRef.current) clearInterval(metricsRef.current);
     };
-  }, [active]);
+  }, [active, totalEstimatedDist]);
 
-  const handleStartTrip = async () => {
+  const handleSearch = async () => {
+    if (!searchQuery) return;
+    Keyboard.dismiss();
+    setSearching(true);
+    try {
+      const results = await Location.geocodeAsync(searchQuery);
+      if (results && results.length > 0) {
+        const dest = results[0];
+        setTargetCoords(dest);
+        
+        let loc = currentCoords;
+        if (!loc) {
+          const curr = await Location.getCurrentPositionAsync({});
+          loc = curr.coords;
+        }
+        
+        const dist = TelemetryEngine.getDistanceKm(
+          loc.latitude, loc.longitude,
+          dest.latitude, dest.longitude
+        );
+        setTotalEstimatedDist(dist);
+        setRemainingDist(dist);
+        setPredictionMatrix(engine.calculateTripTradeoff(dist));
+        
+        mapRef.current?.fitToCoordinates([loc, dest], {
+          edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+          animated: true,
+        });
+      } else {
+        Alert.alert('Not Found', 'Could not find that destination.');
+      }
+    } catch (e) {
+      // Offline mock fallback
+      const mockDist = 45.5;
+      Alert.alert('Offline Mode', `Search failed. Using mock destination (${mockDist}km).`);
+      setTargetCoords({ latitude: 32.0853, longitude: 34.7818 }); 
+      setTotalEstimatedDist(mockDist);
+      setRemainingDist(mockDist);
+      setPredictionMatrix(engine.calculateTripTradeoff(mockDist));
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleStartTrip = async (app?: 'waze' | 'gmaps') => {
     if (simActive) {
       simTickRef.current = 0;
       simTimerRef.current = setInterval(() => {
@@ -114,15 +197,15 @@ export default function DriveScreen() {
         let currentSpeedKmh = 0;
 
         if (t <= 10) {
-          currentSpeedKmh = t * 4; // 0 to 40 km/h
+          currentSpeedKmh = t * 4; 
         } else if (t === 11) {
-          currentSpeedKmh = 65; // Sudden spike
+          currentSpeedKmh = 65; 
         } else if (t >= 12 && t <= 20) {
-          currentSpeedKmh = 95; // Yellow zone
+          currentSpeedKmh = 95; 
         } else if (t >= 21 && t <= 30) {
-          currentSpeedKmh = 110; // Orange zone
+          currentSpeedKmh = 110; 
         } else if (t >= 31 && t <= 40) {
-          currentSpeedKmh = Math.max(0, 110 - ((t - 30) * 11)); // Brake to 0
+          currentSpeedKmh = Math.max(0, 110 - ((t - 30) * 11)); 
         }
 
         const speedMs = currentSpeedKmh / 3.6;
@@ -147,25 +230,17 @@ export default function DriveScreen() {
     setInsights(null);
     engine.reset();
     lastPenaltyRef.current = 0;
-  };
 
-  const openNavigationApp = async (app: 'waze' | 'gmaps') => {
-    await handleStartTrip();
-    
-    const wazeUrl = 'waze://';
-    const gmapsUrl = 'https://www.google.com/maps/search/?api=1&query=';
-    
-    const url = app === 'waze' ? wazeUrl : gmapsUrl;
-    
-    try {
-      const supported = await Linking.canOpenURL(url);
-      if (supported) {
-        await Linking.openURL(url);
-      } else {
-        Alert.alert('App Not Installed', `Could not find ${app === 'waze' ? 'Waze' : 'Google Maps'} on your device. Tracking started locally.`);
+    if (app && searchQuery) {
+      const wazeUrl = `waze://?q=${encodeURIComponent(searchQuery)}`;
+      const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchQuery)}`;
+      const url = app === 'waze' ? wazeUrl : gmapsUrl;
+      try {
+        const supported = await Linking.canOpenURL(url);
+        if (supported) await Linking.openURL(url);
+      } catch (e) {
+        Alert.alert('App Not Installed', `Could not open ${app}.`);
       }
-    } catch (e) {
-      Alert.alert('App Not Installed', `Could not open ${app === 'waze' ? 'Waze' : 'Google Maps'}. Tracking started locally.`);
     }
   };
 
@@ -212,7 +287,6 @@ export default function DriveScreen() {
       engine.reset();
       navigation.navigate('DashboardTab');
     } catch (e) {
-      console.error('Failed to save trip:', e);
       Alert.alert('Error', 'Failed to save trip data.');
     }
   };
@@ -225,10 +299,47 @@ export default function DriveScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Live Telemetry</Text>
+      {/* MAP SECTION (Top Half) */}
+      <View style={styles.mapContainer}>
+        <MapView
+          ref={mapRef}
+          style={StyleSheet.absoluteFillObject}
+          customMapStyle={darkMapStyle}
+          showsUserLocation={true}
+          initialRegion={{
+            latitude: currentCoords?.latitude || 32.0853,
+            longitude: currentCoords?.longitude || 34.7818,
+            latitudeDelta: 0.05,
+            longitudeDelta: 0.05,
+          }}
+        >
+          {targetCoords && <Marker coordinate={targetCoords} pinColor="#4ade80" />}
+        </MapView>
+        
+        {/* Search Overlay */}
+        {!active && (
+          <View style={styles.searchOverlay}>
+            <View style={styles.searchInputContainer}>
+              <Ionicons name="search" size={20} color="#888" style={{marginLeft: 10}} />
+              <TextInput 
+                style={styles.searchInput}
+                placeholder="Where to?"
+                placeholderTextColor="#888"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                onSubmitEditing={handleSearch}
+              />
+              {searching && <ActivityIndicator color="#4ade80" style={{marginRight: 10}}/>}
+            </View>
+          </View>
+        )}
+      </View>
+
+      {/* DASHBOARD SECTION (Bottom Half) */}
+      <View style={styles.dashboardContainer}>
+        {/* Sim Toggle */}
         <View style={styles.simToggleRow}>
-          <Text style={styles.simToggleText}>Simulate Drive</Text>
+          <Text style={styles.simToggleText}>Simulate</Text>
           <Switch 
             value={simActive} 
             onValueChange={setSimActive}
@@ -237,194 +348,191 @@ export default function DriveScreen() {
             thumbColor="#fff"
           />
         </View>
-      </View>
 
-      <View style={[styles.gaugeContainer, { borderColor: gaugeColor }]}>
-        <Text style={styles.speedText}>{speed.toFixed(0)}</Text>
-        <Text style={styles.label}>km/h</Text>
-      </View>
+        {/* Prediction Matrix or Progress Card */}
+        {predictionMatrix && (
+          <View style={styles.matrixCard}>
+            <Text style={styles.matrixTitle}>{active ? 'Projected Savings Remaining' : 'Pre-Trip Target Matrix'}</Text>
+            {active && (
+              <Text style={styles.remainingDist}>Remaining: {remainingDist.toFixed(1)} km</Text>
+            )}
+            <Text style={styles.matrixText}>
+              Capping at 95 km/h will add <Text style={styles.highlight}>{predictionMatrix.timeAddedMins} mins</Text> 
+              {' '}but save <Text style={styles.highlight}>${predictionMatrix.savedMoney}</Text> 
+              {' '}({predictionMatrix.savedLiters} L) upon arrival.
+            </Text>
+          </View>
+        )}
 
-      {insights && (
-        <View style={styles.insightsBox}>
-          <Text style={styles.insightsText}>
-            Drop to 90 km/h to save {insights.savedLitersPer100km} L/100km and ${insights.moneySavedPerHour}/hour
-          </Text>
-        </View>
-      )}
-
-      <View style={styles.metricsPanel}>
-        <View style={styles.metricBox}>
-          <Text style={styles.metricVal}>{distance.toFixed(2)}</Text>
-          <Text style={styles.metricLabel}>Distance (km)</Text>
-        </View>
-        <View style={styles.metricBox}>
-          <Text style={styles.metricVal}>{formatTime(duration)}</Text>
-          <Text style={styles.metricLabel}>Duration</Text>
-        </View>
-        <View style={styles.metricBox}>
-          <Text style={[styles.metricVal, penalties > 0 ? { color: '#ef4444' } : {}]}>{penalties}</Text>
-          <Text style={styles.metricLabel}>Penalties</Text>
-        </View>
-      </View>
-
-      <TouchableOpacity 
-        style={[styles.actionBtn, active ? styles.btnStop : styles.btnStart]} 
-        onPress={active ? handleEndTrip : handleStartTrip}
-      >
-        <Text style={styles.btnText}>{active ? 'End Trip' : 'Start Trip'}</Text>
-      </TouchableOpacity>
-      
-      {!active && (
-        <View style={styles.navRow}>
-          <TouchableOpacity style={styles.navBtn} onPress={() => openNavigationApp('waze')}>
-            <MaterialCommunityIcons name="waze" size={28} color="#fff" />
-            <Text style={styles.navText}>Waze</Text>
-          </TouchableOpacity>
+        {/* Gauge & Main Metrics */}
+        <View style={styles.centerMetrics}>
+          <View style={[styles.smallGauge, { borderColor: gaugeColor }]}>
+            <Text style={styles.speedText}>{speed.toFixed(0)}</Text>
+            <Text style={styles.label}>km/h</Text>
+          </View>
           
-          <TouchableOpacity style={styles.navBtn} onPress={() => openNavigationApp('gmaps')}>
-            <MaterialCommunityIcons name="google-maps" size={28} color="#fff" />
-            <Text style={styles.navText}>Maps</Text>
-          </TouchableOpacity>
+          <View style={styles.metricColumn}>
+            <Text style={styles.metricVal}>{distance.toFixed(1)} km</Text>
+            <Text style={styles.metricLabel}>Driven</Text>
+            
+            <Text style={[styles.metricVal, { marginTop: 10 }]}>{formatTime(duration)}</Text>
+            <Text style={styles.metricLabel}>Time</Text>
+          </View>
         </View>
-      )}
+
+        {insights && (
+          <View style={styles.insightsBox}>
+            <Text style={styles.insightsText}>
+              Drop to 90 km/h to save {insights.savedLitersPer100km} L/100km and ${insights.moneySavedPerHour}/hour
+            </Text>
+          </View>
+        )}
+
+        {/* Action Buttons */}
+        {!active ? (
+          <>
+            <TouchableOpacity style={[styles.actionBtn, styles.btnStart]} onPress={() => handleStartTrip()}>
+              <Text style={styles.btnText}>Start Tracking Locally</Text>
+            </TouchableOpacity>
+            
+            {totalEstimatedDist > 0 && (
+              <View style={styles.navRow}>
+                <TouchableOpacity style={styles.navBtn} onPress={() => handleStartTrip('waze')}>
+                  <MaterialCommunityIcons name="waze" size={20} color="#fff" />
+                  <Text style={styles.navText}>Waze</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={styles.navBtn} onPress={() => handleStartTrip('gmaps')}>
+                  <MaterialCommunityIcons name="google-maps" size={20} color="#fff" />
+                  <Text style={styles.navText}>GMaps</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </>
+        ) : (
+          <TouchableOpacity style={[styles.actionBtn, styles.btnStop]} onPress={handleEndTrip}>
+            <Text style={styles.btnText}>End Trip</Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#121212',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 60,
+  container: { flex: 1, backgroundColor: '#121212' },
+  mapContainer: { flex: 1, position: 'relative' },
+  searchOverlay: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    right: 20,
+    zIndex: 10,
   },
-  header: {
-    width: '100%',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 24,
-    color: '#fff',
-    fontWeight: 'bold',
-    letterSpacing: 1,
-  },
-  simToggleRow: {
+  searchInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 10,
+    backgroundColor: '#1e1e1e',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#333',
+    height: 50,
+    shadowColor: '#000',
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+  },
+  searchInput: { flex: 1, color: '#fff', paddingHorizontal: 15, fontSize: 16 },
+  dashboardContainer: {
+    flex: 1.2,
+    backgroundColor: '#121212',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.5,
+    shadowOffset: { width: 0, height: -5 },
+  },
+  simToggleRow: {
+    position: 'absolute',
+    top: -25,
+    right: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#1e1e1e',
     paddingHorizontal: 15,
     paddingVertical: 5,
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#333',
   },
-  simToggleText: {
-    color: '#9ca3af',
-    marginRight: 10,
-    fontWeight: '600',
+  simToggleText: { color: '#9ca3af', marginRight: 10, fontWeight: '600', fontSize: 12 },
+  matrixCard: {
+    width: '100%',
+    backgroundColor: '#1e1e1e',
+    padding: 15,
+    borderRadius: 12,
+    marginBottom: 15,
+    borderLeftWidth: 4,
+    borderLeftColor: '#4ade80',
   },
-  gaugeContainer: {
-    width: 280,
-    height: 280,
-    borderRadius: 140,
+  matrixTitle: { color: '#aaa', fontWeight: 'bold', marginBottom: 5, fontSize: 14 },
+  remainingDist: { color: '#fff', fontWeight: 'bold', fontSize: 18, marginBottom: 5 },
+  matrixText: { color: '#eee', fontSize: 14, lineHeight: 20 },
+  highlight: { color: '#4ade80', fontWeight: 'bold' },
+  centerMetrics: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    marginBottom: 15,
+  },
+  smallGauge: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
     borderWidth: 6,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#1e1e1e',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.5,
-    shadowRadius: 15,
+    marginRight: 30,
   },
-  speedText: {
-    fontSize: 90,
-    fontWeight: '800',
-    color: '#fff',
-  },
-  label: {
-    fontSize: 24,
-    color: '#9ca3af',
-    fontWeight: '600',
-    marginTop: -10,
-  },
-  metricsPanel: {
-    flexDirection: 'row',
-    width: '90%',
-    justifyContent: 'space-between',
-    backgroundColor: '#1e1e1e',
-    padding: 20,
-    borderRadius: 16,
-  },
+  speedText: { fontSize: 48, fontWeight: '800', color: '#fff' },
+  label: { fontSize: 16, color: '#9ca3af', fontWeight: '600', marginTop: -5 },
+  metricColumn: { alignItems: 'flex-start' },
+  metricVal: { fontSize: 24, fontWeight: 'bold', color: '#fff' },
+  metricLabel: { fontSize: 12, color: '#9ca3af', marginTop: 2 },
   insightsBox: {
     backgroundColor: '#333',
-    padding: 12,
+    padding: 10,
     borderRadius: 8,
-    width: '90%',
-    alignItems: 'center',
-    marginVertical: 10,
+    width: '100%',
+    marginBottom: 15,
     borderLeftWidth: 4,
     borderLeftColor: '#f97316',
   },
-  insightsText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  metricBox: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  metricVal: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  metricLabel: {
-    fontSize: 12,
-    color: '#9ca3af',
-    marginTop: 4,
-  },
+  insightsText: { color: '#fff', fontSize: 13, textAlign: 'center' },
   actionBtn: {
-    width: '85%',
-    paddingVertical: 18,
+    width: '100%',
+    paddingVertical: 15,
     borderRadius: 30,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
+    marginBottom: 10,
   },
-  btnStart: {
-    backgroundColor: '#4ade80',
-  },
-  btnStop: {
-    backgroundColor: '#ef4444',
-  },
-  btnText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#121212',
-  },
-  navRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 20,
-    gap: 15,
-  },
+  btnStart: { backgroundColor: '#4ade80' },
+  btnStop: { backgroundColor: '#ef4444' },
+  btnText: { fontSize: 18, fontWeight: 'bold', color: '#121212' },
+  navRow: { flexDirection: 'row', gap: 15, width: '100%' },
   navBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#1e1e1e',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingVertical: 12,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: '#333',
   },
-  navText: {
-    color: '#fff',
-    marginLeft: 8,
-    fontWeight: '600',
-  },
+  navText: { color: '#fff', marginLeft: 8, fontWeight: '600' },
 });
