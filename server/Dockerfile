@@ -1,36 +1,29 @@
-# Base Node.js image
-FROM node:20-alpine AS builder
+FROM node:18-alpine AS builder
 
 WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
 
 # Install dependencies
-RUN npm install
+COPY package*.json ./
+RUN npm ci
 
-# Copy source files
-COPY . .
+# Copy Prisma schema and code
+COPY prisma ./prisma
+COPY tsconfig.json ./
+COPY src ./src
 
-# Generate Prisma Client
+# Generate prisma client and build TS
 RUN npx prisma generate
-
-# Build TypeScript
 RUN npm run build
 
-# Production stage
-FROM node:20-alpine
+FROM node:18-alpine AS runner
 
 WORKDIR /app
 
-# Copy built artifacts and production dependencies
-COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/package.json ./
 COPY --from=builder /app/prisma ./prisma
 
-# Expose port
 EXPOSE 3000
 
-# Start server
 CMD ["npm", "start"]

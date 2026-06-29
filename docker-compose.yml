@@ -1,0 +1,29 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ecodrive_user
+      POSTGRES_PASSWORD: supersecretpassword
+      POSTGRES_DB: ecodrive
+    ports:
+      - '5432:5432'
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - '3000:3000'
+    environment:
+      DATABASE_URL: postgresql://ecodrive_user:supersecretpassword@db:5432/ecodrive?schema=public
+      JWT_SECRET: supersecretjwtkeyforecodrive
+    depends_on:
+      - db
+
+volumes:
+  db_data:
