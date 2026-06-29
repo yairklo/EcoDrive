@@ -126,14 +126,14 @@ To ensure maximum scalability, extensibility, and security, the platform is stru
     * Process inbound stream variables to log ongoing trip states securely without blocking core system performance.
 
 ### Phase 5: UI/UX Safety Interface & Audio Feedback System (UI-DRIVE)
-* [ ] **TASK-5.1: Peripheral Vision UI Dashboard (Non-Distracting Interface)**
+* [x] **TASK-5.1: Peripheral Vision UI Dashboard (Non-Distracting Interface)**
     * Design a driving view that does not require reading small text.
     * Implement a full-screen ambient color shift system: **Bright Green** (Optimal Speed), **Soft Amber** (Slight Over-speeding), **Deep Muted Crimson** (Aggressive fuel waste).
-* [ ] **TASK-5.2: Text-To-Speech (TTS) In-App Audio Voice Prompts Engine**
+* [x] **TASK-5.2: Text-To-Speech (TTS) In-App Audio Voice Prompts Engine**
     * Integrate speech synthesis plugins (`expo-speech`) to deliver hands-free audio notifications.
     * Incorporate voice notification delays to avoid sound fatigue (e.g., limiting spoken efficiency guidance to once every 2 minutes max).
     * *Example Phrasings:* *"Slowing down by 15 km/h will save you 18 Shekels on this trip while adding only 3 minutes to arrival time."*
-* [ ] **TASK-5.3: Post-Trip Summary Report Analytics View**
+* [x] **TASK-5.3: Post-Trip Summary Report Analytics View**
     * Design a post-trip summary screen that displays metrics once the app detects the vehicle has stopped.
     * Present direct financial summaries, environmental preservation metrics (CO₂ prevented), and an overall "Eco-Score" grading performance from 0 to 100.
 

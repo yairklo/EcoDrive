@@ -7,6 +7,7 @@ import RegisterScreen from './src/screens/RegisterScreen';
 import VehicleSetupScreen from './src/screens/VehicleSetupScreen';
 import RefuelLogScreen from './src/screens/RefuelLogScreen';
 import AnalyticsScreen from './src/screens/AnalyticsScreen';
+import DriveScreen from './src/screens/DriveScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -19,6 +20,7 @@ export default function App() {
         <Stack.Screen name="VehicleSetup" component={VehicleSetupScreen} />
         <Stack.Screen name="RefuelLog" component={RefuelLogScreen} />
         <Stack.Screen name="Analytics" component={AnalyticsScreen} />
+        <Stack.Screen name="Drive" component={DriveScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
