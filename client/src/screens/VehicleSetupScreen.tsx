@@ -62,7 +62,7 @@ export default function VehicleSetupScreen({ navigation }: Props) {
 
       await outbox.enqueue('VEHICLE_SETUP', payload);
       Alert.alert('Success', 'Vehicle profile configured!');
-      navigation.navigate('RefuelLog', { vehicleId });
+      navigation.navigate('RefuelLog', { vehicleId, isOnboarding: true });
     } catch (error: any) {
       Alert.alert('Error', 'Failed to configure vehicle.');
     }

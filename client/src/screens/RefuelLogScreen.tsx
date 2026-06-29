@@ -9,7 +9,7 @@ type Props = {
 };
 
 export default function RefuelLogScreen({ route, navigation }: Props) {
-  const { vehicleId } = route.params || { vehicleId: 'local-test-uuid' };
+  const { vehicleId, isOnboarding } = route.params || { vehicleId: 'local-test-uuid', isOnboarding: false };
   const [odometer, setOdometer] = useState('');
   const [liters, setLiters] = useState('');
   const [cost, setCost] = useState('');
@@ -24,7 +24,15 @@ export default function RefuelLogScreen({ route, navigation }: Props) {
       });
 
       Alert.alert('Success', 'Refuel log queued successfully!');
-      navigation.goBack();
+      
+      if (isOnboarding) {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Drive' }],
+        });
+      } else {
+        navigation.goBack();
+      }
     } catch (error) {
       Alert.alert('Error', 'Failed to queue log');
     }
