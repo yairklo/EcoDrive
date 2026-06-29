@@ -1,6 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
-import { v4 as uuidv4 } from 'uuid';
 import { api } from './api';
 
 const OUTBOX_KEY = '@ecodrive_outbox';
@@ -14,6 +13,14 @@ export interface OutboxItem {
   synced: boolean;
   createdAt: number;
 }
+
+const generateUUID = () => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
 
 export class OutboxQueue {
   private isFlushing = false;
@@ -46,7 +53,7 @@ export class OutboxQueue {
 
   public async enqueue(type: OutboxItemType, payload: any): Promise<OutboxItem> {
     const queue = await this.getQueue();
-    const clientUuid = payload.vehicleId || uuidv4();
+    const clientUuid = payload.vehicleId || generateUUID();
     
     const item: OutboxItem = {
       clientUuid,
