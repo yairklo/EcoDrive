@@ -3,8 +3,21 @@ import * as TaskManager from 'expo-task-manager';
 
 import { TelemetryEngine } from './telemetry';
 
+import * as Notifications from 'expo-notifications';
+
 const LOCATION_TASK_NAME = 'background-location-task';
 const engine = new TelemetryEngine();
+
+export let isTripActive = false;
+export function setIsTripActive(active: boolean) {
+  isTripActive = active;
+  if (!active) {
+    hasPromptedForTrip = false; // Reset when trip ends
+  }
+}
+
+let fastContinuousStartTime = 0;
+let hasPromptedForTrip = false;
 
 // The callback for the background task
 TaskManager.defineTask(LOCATION_TASK_NAME, ({ data, error }) => {
@@ -14,8 +27,43 @@ TaskManager.defineTask(LOCATION_TASK_NAME, ({ data, error }) => {
   }
   if (data) {
     const { locations } = data as any;
-    locations.forEach((loc: any) => engine.processLocationUpdate(loc));
-    console.log('Current Telemetry:', engine.getTelemetryReport());
+    
+    locations.forEach((loc: any) => {
+      const speedMs = loc.coords.speed || 0;
+      
+      if (isTripActive) {
+        engine.processLocationUpdate(loc);
+      } else {
+        // Not in active trip, monitor for auto-start
+        // 20 km/h is ~5.55 m/s
+        if (speedMs > 5.55) {
+          if (fastContinuousStartTime === 0) {
+            fastContinuousStartTime = loc.timestamp;
+          } else {
+            const durationSec = (loc.timestamp - fastContinuousStartTime) / 1000;
+            if (durationSec >= 30 && !hasPromptedForTrip) {
+              // Trigger notification
+              Notifications.scheduleNotificationAsync({
+                content: {
+                  title: "🚗 EcoDrive Detected a Drive!",
+                  body: "We noticed you're moving fast. Would you like to start tracking this trip to save fuel?",
+                  data: { type: 'START_TRIP_PROMPT' },
+                },
+                trigger: null, // trigger immediately
+              });
+              hasPromptedForTrip = true;
+            }
+          }
+        } else {
+          // Reset if speed drops below threshold
+          fastContinuousStartTime = 0;
+        }
+      }
+    });
+
+    if (isTripActive) {
+      console.log('Current Telemetry:', engine.getTelemetryReport());
+    }
   }
 });
 
