@@ -59,6 +59,20 @@ export default function DashboardScreen() {
           </View>
         </View>
 
+        {/* Log Refuel Button Inside ScrollView */}
+        <TouchableOpacity 
+          style={styles.actionCard} 
+          onPress={() => navigation.navigate('RefuelLog')}
+        >
+          <View style={styles.actionCardIcon}>
+            <Ionicons name="water-outline" size={24} color="#121212" />
+          </View>
+          <View style={{ marginLeft: 15 }}>
+            <Text style={styles.actionCardTitle}>Log Refuel & Odometer</Text>
+            <Text style={styles.actionCardSub}>Update your fuel data to calibrate the Eco-Coach</Text>
+          </View>
+        </TouchableOpacity>
+
         {/* OLS Calibration Status Widget */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>OLS Calibration Status</Text>
@@ -111,15 +125,13 @@ export default function DashboardScreen() {
         </View>
       </ScrollView>
 
-      <View style={styles.stickyFooter}>
-        <TouchableOpacity 
-          style={styles.fullWidthBtn} 
-          onPress={() => navigation.navigate('RefuelLog')}
-        >
-          <Ionicons name="gas-station-outline" size={24} color="#121212" />
-          <Text style={styles.fullWidthBtnText}>Update Fuel & Odometer</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Floating Action Button for Start Trip */}
+      <TouchableOpacity 
+        style={styles.fab} 
+        onPress={() => navigation.navigate('DriveTab')}
+      >
+        <Ionicons name="play" size={24} color="#121212" />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -252,29 +264,45 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 14,
   },
-  stickyFooter: {
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: '#121212',
-    borderTopWidth: 1,
-    borderTopColor: '#333',
-  },
-  fullWidthBtn: {
-    backgroundColor: '#4ade80',
+  actionCard: {
+    backgroundColor: '#1e1e1e',
     borderRadius: 12,
+    padding: 15,
+    marginBottom: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 15,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: -2 },
+    borderWidth: 1,
+    borderColor: '#333',
   },
-  fullWidthBtnText: {
-    color: '#121212',
-    fontWeight: 'bold',
+  actionCardIcon: {
+    backgroundColor: '#4ade80',
+    padding: 10,
+    borderRadius: 10,
+  },
+  actionCardTitle: {
+    color: '#fff',
     fontSize: 16,
-    marginLeft: 10,
+    fontWeight: 'bold',
+  },
+  actionCardSub: {
+    color: '#888',
+    fontSize: 12,
+    marginTop: 2,
+    maxWidth: '85%',
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    backgroundColor: '#4ade80',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.4,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
   },
 });
