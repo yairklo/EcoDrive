@@ -63,7 +63,7 @@ export class TelemetryEngine {
 
     this.lastLocation = location;
     
-    return { penaltyApplied };
+    return { penaltyApplied, currentAcceleration: acceleration };
   }
 
   /**

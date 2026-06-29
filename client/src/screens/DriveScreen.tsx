@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, Switch, TextInput, Keyboard, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, Switch, TextInput, Keyboard, ActivityIndicator, DeviceEventEmitter } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -45,6 +45,9 @@ export default function DriveScreen() {
   const [totalEstimatedDist, setTotalEstimatedDist] = useState<number>(0);
   const [remainingDist, setRemainingDist] = useState<number>(0);
   const [predictionMatrix, setPredictionMatrix] = useState<any>(null);
+  
+  // Urban Behavioral Alert
+  const [urbanAlert, setUrbanAlert] = useState<{ active: boolean, timestamp: number } | null>(null);
 
   const mapRef = useRef<MapView>(null);
   const lastPenaltyRef = useRef(0);
@@ -53,7 +56,7 @@ export default function DriveScreen() {
   const simTimerRef = useRef<NodeJS.Timeout | null>(null);
   const simTickRef = useRef(0);
 
-  // Initialize Map Location
+  // Initialize Map Location & Event Listeners
   useEffect(() => {
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
@@ -61,6 +64,22 @@ export default function DriveScreen() {
       let location = await Location.getCurrentPositionAsync({});
       setCurrentCoords(location.coords);
     })();
+
+    const urbanAlertSub = DeviceEventEmitter.addListener('URBAN_ALERT_TRIGGERED', (data) => {
+      setUrbanAlert({ active: true, timestamp: data.timestamp });
+      setTimeout(() => {
+        setUrbanAlert(prev => {
+          if (prev && prev.timestamp === data.timestamp) {
+            return null;
+          }
+          return prev;
+        });
+      }, 4000);
+    });
+
+    return () => {
+      urbanAlertSub.remove();
+    };
   }, []);
 
   useEffect(() => {
@@ -296,6 +315,14 @@ export default function DriveScreen() {
 
   return (
     <View style={styles.container}>
+      {/* URBAN ALERT OVERLAY */}
+      {urbanAlert && urbanAlert.active && (
+        <View style={styles.urbanAlertOverlay}>
+          <Text style={styles.urbanAlertTitle}>⚠️ Urban Speeding Detected</Text>
+          <Text style={styles.urbanAlertBody}>Harsh acceleration inside city limits. Ease off the gas.</Text>
+        </View>
+      )}
+
       {/* MAP SECTION (Top Half) */}
       <View style={styles.mapContainer}>
         <MapView
@@ -532,4 +559,21 @@ const styles = StyleSheet.create({
     borderColor: '#333',
   },
   navText: { color: '#fff', marginLeft: 8, fontWeight: '600' },
+  urbanAlertOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#ef4444',
+    padding: 30,
+    paddingTop: 60,
+    zIndex: 999,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.8,
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 15,
+  },
+  urbanAlertTitle: { color: '#fff', fontWeight: '900', fontSize: 20, marginBottom: 5 },
+  urbanAlertBody: { color: '#fff', fontSize: 14, fontWeight: '500', textAlign: 'center' },
 });

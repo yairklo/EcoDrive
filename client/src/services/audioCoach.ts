@@ -44,11 +44,26 @@ class AudioCoachService {
     );
   }
 
-  public async speakAccelerationAlert() {
+  public async speakAccelerationAlert(muted: boolean = false) {
+    if (muted) return;
     const settings = await getSettings();
     if (!settings.masterVoice || !settings.accelerationAudio) return;
 
     this.speakThrottled('acceleration', "Gentle on the throttle.");
+  }
+
+  public async speakUrbanAccelerationAlert() {
+    const settings = await getSettings();
+    if (!settings.masterVoice || !settings.accelerationAudio) return;
+
+    // Use a custom throttle for this alert (20 seconds)
+    const now = Date.now();
+    const lastPlayed = this.lastPlayedMap['urban_accel'] || 0;
+
+    if (now - lastPlayed >= 20000) {
+      Speech.speak("האצה חדה מדי לעיר", { language: 'he' });
+      this.lastPlayedMap['urban_accel'] = now;
+    }
   }
 
   private speakThrottled(key: string, text: string) {
