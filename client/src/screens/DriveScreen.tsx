@@ -71,13 +71,11 @@ export default function DriveScreen() {
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
       if (metricsRef.current) clearInterval(metricsRef.current);
-      if (simTimerRef.current) clearInterval(simTimerRef.current);
     }
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (metricsRef.current) clearInterval(metricsRef.current);
-      if (simTimerRef.current) clearInterval(simTimerRef.current);
     };
   }, [active]);
 
