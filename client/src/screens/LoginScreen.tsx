@@ -4,6 +4,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { api } from '../services/api';
 import { setToken } from '../services/auth';
 import { AuthSchema } from '../schemas/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { v4 as uuidv4 } from 'uuid';
 
 type Props = {
   navigation: NativeStackNavigationProp<any, any>;
@@ -31,10 +33,27 @@ export default function LoginScreen({ navigation }: Props) {
   };
 
   const handleGuestMode = async () => {
-    // Generate local mock token for Guest Mode
-    await setToken('guest_uuid');
-    Alert.alert('Offline Mode', 'Continuing as Guest offline.');
-    navigation.navigate('VehicleSetup');
+    try {
+      const guestId = `guest_user_${uuidv4()}`;
+      const mockToken = 'mock_guest_jwt_token';
+      
+      const guestProfile = {
+        id: guestId,
+        email: 'guest@ecodrive.local',
+        name: 'Guest User',
+        token: mockToken,
+      };
+
+      // Wrap in try-catch to prevent app freeze on storage failure
+      await AsyncStorage.setItem('user_profile', JSON.stringify(guestProfile));
+      await setToken(mockToken);
+      
+      Alert.alert('Offline Mode', 'Continuing as Guest offline.');
+      navigation.navigate('VehicleSetup');
+    } catch (error) {
+      console.error('Failed to initialize guest profile in AsyncStorage:', error);
+      Alert.alert('Initialization Error', 'Could not create guest session. Please try again.');
+    }
   };
 
   return (
