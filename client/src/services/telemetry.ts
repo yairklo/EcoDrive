@@ -8,6 +8,7 @@ export class TelemetryEngine {
   private distanceCity = 0; // meters
   private distanceHighway = 0; // meters
   private totalPenaltyML = 0; // milliliters
+  private speedProfile: { time: number; speed: number }[] = [];
 
   public setPhysics(massKg: number, efficiency: number) {
     this.MASS_KG = massKg;
@@ -31,6 +32,12 @@ export class TelemetryEngine {
     // Speed from GPS (if available, otherwise calculate from distance over time)
     const vInitial = this.lastLocation.coords.speed || 0; // m/s
     const vFinal = location.coords.speed || 0; // m/s
+
+    // Log velocity profile for graphing
+    this.speedProfile.push({
+      time: tFinal,
+      speed: vFinal * 3.6
+    });
 
     // Calculate acceleration: a = (v_final - v_initial) / deltaT
     const acceleration = (vFinal - vInitial) / deltaTSeconds;
@@ -71,11 +78,34 @@ export class TelemetryEngine {
     return liters * 1000;
   }
 
+  public getAerodynamicPrediction(currentSpeedKmh: number) {
+    if (currentSpeedKmh <= 90) return null;
+    
+    const baselineLitersPer100km = 6.0; 
+    const currentLitersPer100km = baselineLitersPer100km * Math.pow(currentSpeedKmh / 90, 2);
+    
+    const savedLitersPer100km = currentLitersPer100km - baselineLitersPer100km;
+    
+    const distanceInOneHour = currentSpeedKmh; 
+    const fuelUsedAtCurrentSpeed = currentLitersPer100km * (distanceInOneHour / 100);
+    const fuelUsedAt90ForSameDistance = baselineLitersPer100km * (distanceInOneHour / 100);
+    
+    const fuelSavedInOneHour = fuelUsedAtCurrentSpeed - fuelUsedAt90ForSameDistance;
+    const gasPrice = 1.50; // $1.50 per liter
+    const moneySavedPerHour = fuelSavedInOneHour * gasPrice;
+    
+    return {
+      savedLitersPer100km: savedLitersPer100km.toFixed(1),
+      moneySavedPerHour: moneySavedPerHour.toFixed(2),
+    };
+  }
+
   public getTelemetryReport() {
     return {
       distanceCityKm: this.distanceCity / 1000,
       distanceHighwayKm: this.distanceHighway / 1000,
       accelerationPenaltyMl: this.totalPenaltyML,
+      speedProfile: [...this.speedProfile],
     };
   }
 
@@ -84,5 +114,6 @@ export class TelemetryEngine {
     this.distanceHighway = 0;
     this.totalPenaltyML = 0;
     this.lastLocation = null;
+    this.speedProfile = [];
   }
 }

@@ -24,6 +24,7 @@ export default function DriveScreen() {
   const [penalties, setPenalties] = useState(0);
   const [gaugeColor, setGaugeColor] = useState('#4ade80'); 
   const [simActive, setSimActive] = useState(false);
+  const [insights, setInsights] = useState<{ savedLitersPer100km: string, moneySavedPerHour: string } | null>(null);
   
   const lastPenaltyRef = useRef(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -61,12 +62,37 @@ export default function DriveScreen() {
         const report = engine.getTelemetryReport();
         setDistance(report.distanceCityKm + report.distanceHighwayKm);
         
+        let currentSpeedKmh = 0;
+        if (report.speedProfile.length > 0) {
+          currentSpeedKmh = report.speedProfile[report.speedProfile.length - 1].speed;
+        }
+
+        let targetColor = '#4ade80'; // Green
+        let targetInsights = null;
+
+        if (currentSpeedKmh <= 90) {
+          targetColor = '#4ade80';
+        } else if (currentSpeedKmh <= 105) {
+          targetColor = '#eab308'; // Yellow
+          targetInsights = engine.getAerodynamicPrediction(currentSpeedKmh);
+        } else if (currentSpeedKmh <= 120) {
+          targetColor = '#f97316'; // Orange
+          targetInsights = engine.getAerodynamicPrediction(currentSpeedKmh);
+        } else {
+          targetColor = '#ef4444'; // Red
+          targetInsights = engine.getAerodynamicPrediction(currentSpeedKmh);
+        }
+
         if (report.accelerationPenaltyMl > lastPenaltyRef.current) {
           setPenalties(p => p + 1);
           setGaugeColor('#ef4444'); 
-          setTimeout(() => setGaugeColor('#4ade80'), 1500);
+          setTimeout(() => setGaugeColor(targetColor), 1500);
           lastPenaltyRef.current = report.accelerationPenaltyMl;
+        } else {
+          setGaugeColor(targetColor);
         }
+        
+        setInsights(targetInsights);
       }, 1000);
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -91,10 +117,12 @@ export default function DriveScreen() {
           currentSpeedKmh = t * 4; // 0 to 40 km/h
         } else if (t === 11) {
           currentSpeedKmh = 65; // Sudden spike
-        } else if (t >= 12 && t <= 30) {
-          currentSpeedKmh = 95; // Steady highway
+        } else if (t >= 12 && t <= 20) {
+          currentSpeedKmh = 95; // Yellow zone
+        } else if (t >= 21 && t <= 30) {
+          currentSpeedKmh = 110; // Orange zone
         } else if (t >= 31 && t <= 40) {
-          currentSpeedKmh = Math.max(0, 95 - ((t - 30) * 9.5)); // Brake to 0
+          currentSpeedKmh = Math.max(0, 110 - ((t - 30) * 11)); // Brake to 0
         }
 
         const speedMs = currentSpeedKmh / 3.6;
@@ -116,6 +144,7 @@ export default function DriveScreen() {
     setDuration(0);
     setDistance(0);
     setPenalties(0);
+    setInsights(null);
     engine.reset();
     lastPenaltyRef.current = 0;
   };
@@ -211,6 +240,14 @@ export default function DriveScreen() {
         <Text style={styles.speedText}>{speed.toFixed(0)}</Text>
         <Text style={styles.label}>km/h</Text>
       </View>
+
+      {insights && (
+        <View style={styles.insightsBox}>
+          <Text style={styles.insightsText}>
+            Drop to 90 km/h to save {insights.savedLitersPer100km} L/100km and ${insights.moneySavedPerHour}/hour
+          </Text>
+        </View>
+      )}
 
       <View style={styles.metricsPanel}>
         <View style={styles.metricBox}>
@@ -314,6 +351,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#1e1e1e',
     padding: 20,
     borderRadius: 16,
+  },
+  insightsBox: {
+    backgroundColor: '#333',
+    padding: 12,
+    borderRadius: 8,
+    width: '90%',
+    alignItems: 'center',
+    marginVertical: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: '#f97316',
+  },
+  insightsText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
   },
   metricBox: {
     alignItems: 'center',
