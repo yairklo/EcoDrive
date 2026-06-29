@@ -1,9 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { View, ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
-
 import VehicleSetupScreen from './src/screens/VehicleSetupScreen';
 import RefuelLogScreen from './src/screens/RefuelLogScreen';
 import AnalyticsScreen from './src/screens/AnalyticsScreen';
@@ -14,19 +16,44 @@ const Stack = createNativeStackNavigator();
 
 export default function App() {
   const navigationRef = useNavigationContainerRef();
+  const [isBooting, setIsBooting] = useState(true);
+  const [initialRoute, setInitialRoute] = useState('Login');
 
   useEffect(() => {
     registerForPushNotificationsAsync();
     const subscription = setupNotificationListeners(navigationRef);
+
+    const checkSession = async () => {
+      try {
+        const userProfile = await AsyncStorage.getItem('user_profile');
+        if (userProfile) {
+          setInitialRoute('MainTabs');
+        }
+      } catch (e) {
+        console.log('Failed to read session:', e);
+      } finally {
+        setIsBooting(false);
+      }
+    };
+
+    checkSession();
 
     return () => {
       subscription.remove();
     };
   }, []);
 
+  if (isBooting) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#121212' }}>
+        <ActivityIndicator size="large" color="#4ade80" />
+      </View>
+    );
+  }
+
   return (
     <NavigationContainer ref={navigationRef}>
-      <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
+      <Stack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="VehicleSetup" component={VehicleSetupScreen} />
