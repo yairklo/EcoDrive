@@ -103,10 +103,11 @@ To ensure maximum scalability, extensibility, and security, the platform is stru
 * [ ] **TASK-3.2: Fuel Journal Data Submissions & Logs Management API**
     * Construct endpoint allowing entries for historical fill-up logs.
     * Implement server-side logical cross-examinations ensuring current odometer metrics are greater than previous logs.
-* [ ] **TASK-3.3: Adaptive Vehicle Fuel Consumption Calibration Processor**
-    * Develop core computational utility code triggered after successive refueling updates.
-    * *Mathematical Algorithm:* Calculate the total distance covered since the last log (`Odometer_Current - Odometer_Previous`) and divide by the total amount of liters needed to return the tank to full capacity (`Liters_Pumped`).
-    * Save this computed real-world consumption metric (`km_per_liter_actual`) to override the initial baseline profile default.
+* [ ] **TASK-3.3: Adaptive Calibration Engine (Multi-Variable Dual-Profile Calibration Framework)**
+    * Develop a robust computational utility triggered after successive refueling updates.
+    * Require at least 3 refueling logs to execute an Ordinary Least Squares (OLS) Linear Regression using matrix math (via `mathjs`).
+    * *Algorithm:* Independent variables must be accumulated predicted city fuel burn and predicted highway fuel burn. Dependent variable is the actual total fuel pumped.
+    * Isolate and save two independent correction factors: `k_city` and `k_highway` to eliminate guessing fuel distribution.
 * [ ] **TASK-3.4: Vehicle Profile Setup UI Forms & Log Entry Dialogues**
     * Design interactive interface views allowing users to assign their transport layout configurations.
     * Build manual reporting submission windows for gas station refills, immediately recalculating vehicle stats.
@@ -116,14 +117,10 @@ To ensure maximum scalability, extensibility, and security, the platform is stru
     * Incorporate safe GPS background tracking permissions and runtime systems (`expo-location`).
     * Enforce structured data capture configurations balancing high precision (tracking deltas every few meters) against aggressive battery drain.
 * [ ] **TASK-4.2: Velocity-to-Consumption Telemetry Engine (The Core Physics Calculator)**
-    * Build internal utility class evaluating physical kinetic properties based on instantaneous speed updates.
-    * *Mathematical Formula (Aerodynamic Drag Modeling):*
-        $$P_{	ext{drag}} = rac{1}{2} ho \cdot v^3 \cdot A \cdot C_d$$
-        Because aerodynamic drag power scales cubically with velocity ($v^3$), fuel burn per kilometer increases quadratically ($v^2$) at high speeds.
-    * Compare current velocity ($v_{	ext{current}}$) against the vehicle's optimal eco-speed zone ($v_{	ext{optimal}} pprox 80 	ext{ km/h}$).
-    * Derive exact projected cost differentials:
-        $$\Delta_{	ext{Burn}} = 	ext{Consumption}(v_{	ext{current}}) - 	ext{Consumption}(v_{	ext{optimal}})$$
-        $$	ext{Money Saved per Min} = \Delta_{	ext{Burn}} 	imes 	ext{Distance Covered per Min} 	imes 	ext{Fuel Price per Liter}$$
+    * **Dynamic Telemetry Segmentation:** Real-time GPS data streams must be actively sorted into two tracking buckets during a trip: `Distance_City` (0-60 km/h or high frequency of stops) and `Distance_Highway` (60+ km/h steady cruise).
+    * **Kinetic Energy Acceleration Penalties:** Incorporate accelerometer monitoring to capture acceleration epochs (a > 2.5 m/s²).
+    * Implement the strict physics-based kinetic energy delta formula: `Delta_E = 0.5 * m * (v_final² - v_initial²)`
+    * Assume a baseline standard vehicle mass (`m = 1400 kg`) and a standard internal combustion engine thermal efficiency of `30%` to calculate the precise baseline fuel-burn penalty in milliliters for every aggressive acceleration event.
 * [ ] **TASK-4.3: Real-Time Live In-Trip Server Synchronization Endpoint**
     * Construct light data ingestion API or stateful WebSocket payload standard accepting telemetry records.
     * Process inbound stream variables to log ongoing trip states securely without blocking core system performance.
