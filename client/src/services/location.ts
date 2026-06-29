@@ -1,7 +1,10 @@
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 
+import { TelemetryEngine } from './telemetry';
+
 const LOCATION_TASK_NAME = 'background-location-task';
+const engine = new TelemetryEngine();
 
 // The callback for the background task
 TaskManager.defineTask(LOCATION_TASK_NAME, ({ data, error }) => {
@@ -11,9 +14,8 @@ TaskManager.defineTask(LOCATION_TASK_NAME, ({ data, error }) => {
   }
   if (data) {
     const { locations } = data as any;
-    // Process locations
-    console.log('Received background locations:', locations);
-    // Task 4.2 Telemetry processing will be hooked here
+    locations.forEach((loc: any) => engine.processLocationUpdate(loc));
+    console.log('Current Telemetry:', engine.getTelemetryReport());
   }
 });
 
