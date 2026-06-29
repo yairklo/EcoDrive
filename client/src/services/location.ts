@@ -26,6 +26,7 @@ export function setIsTripActive(active: boolean) {
     lastTier = '';
     silentUrbanProfile = false;
     rollingBuffer.length = 0;
+    fuelEngine.flush().catch(console.warn);
   }
 }
 
@@ -72,7 +73,8 @@ export async function processSingleLocation(loc: any) {
         roadData.osmWayId, 
         bearing, 
         tickData.total_ml, 
-        tickData.is_accel_waste
+        tickData.is_accel_waste,
+        speedKmh
       );
     }
 
