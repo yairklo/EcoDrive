@@ -3,6 +3,7 @@ import * as TaskManager from 'expo-task-manager';
 
 import { TelemetryEngine } from './telemetry';
 
+import { Alert } from 'react-native';
 import * as Notifications from 'expo-notifications';
 
 const LOCATION_TASK_NAME = 'background-location-task';
@@ -46,15 +47,28 @@ TaskManager.defineTask(LOCATION_TASK_NAME, ({ data, error }) => {
           } else {
             const durationSec = (loc.timestamp - fastContinuousStartTime) / 1000;
             if (durationSec >= 30 && !hasPromptedForTrip) {
-              // Trigger notification
-              Notifications.scheduleNotificationAsync({
-                content: {
-                  title: "🚗 EcoDrive Detected a Drive!",
-                  body: "We noticed you're moving fast. Would you like to start tracking this trip to save fuel?",
-                  data: { type: 'START_TRIP_PROMPT' },
-                },
-                trigger: null, // trigger immediately
-              });
+              // Trigger notification safely
+              try {
+                Notifications.scheduleNotificationAsync({
+                  content: {
+                    title: "🚗 EcoDrive Detected a Drive!",
+                    body: "We noticed you're moving fast. Would you like to start tracking this trip to save fuel?",
+                    data: { type: 'START_TRIP_PROMPT' },
+                  },
+                  trigger: null, // trigger immediately
+                }).catch(() => {
+                   Alert.alert(
+                    "🚗 EcoDrive Detected a Drive!",
+                    "We noticed you're moving fast. Would you like to start tracking this trip to save fuel?"
+                  );
+                });
+              } catch (e) {
+                console.log('Expo Go notification blocked, using Alert fallback');
+                Alert.alert(
+                  "🚗 EcoDrive Detected a Drive!",
+                  "We noticed you're moving fast. Would you like to start tracking this trip to save fuel?"
+                );
+              }
               hasPromptedForTrip = true;
             }
           }

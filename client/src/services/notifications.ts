@@ -1,5 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import { Platform, Alert } from 'react-native';
+import Constants from 'expo-constants';
 import { setIsTripActive } from './location';
 
 Notifications.setNotificationHandler({
@@ -12,6 +13,11 @@ Notifications.setNotificationHandler({
 
 export async function registerForPushNotificationsAsync() {
   try {
+    if (Constants.appOwnership === 'expo') {
+      console.log('Running in Expo Go: Bypassing remote push notification permissions to avoid SDK 54 crash.');
+      return;
+    }
+
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
     if (existingStatus !== 'granted') {
