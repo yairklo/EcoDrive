@@ -198,9 +198,12 @@ export default function DriveScreen() {
       }
 
       const tripData = {
+        id: Date.now().toString(),
+        date: new Date().toISOString(),
         distanceCityKm: report.distanceCityKm,
         distanceHighwayKm: report.distanceHighwayKm,
         accelerationPenaltyMl: report.accelerationPenaltyMl,
+        speedProfile: report.speedProfile,
       };
 
       await outbox.enqueue('TRIP_SYNC', { vehicleId, ...tripData });

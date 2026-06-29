@@ -1,9 +1,11 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { computeDashboardMetrics } from '../services/analytics';
 
 export default function DashboardScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<any>>();
   const [refreshing, setRefreshing] = useState(false);
   const [metrics, setMetrics] = useState<any>(null);
 
@@ -89,7 +91,11 @@ export default function DashboardScreen() {
           <Text style={styles.empty}>No trips recorded yet.</Text>
         ) : (
           metrics.recentTrips.map((trip: any) => (
-            <View key={trip.id} style={styles.tripRow}>
+            <TouchableOpacity 
+              key={trip.id} 
+              style={styles.tripRow}
+              onPress={() => navigation.navigate('TripDetail', { trip })}
+            >
               <View>
                 <Text style={styles.tripDate}>{new Date(trip.date).toLocaleDateString()}</Text>
                 <Text style={styles.tripDist}>{trip.totalDist.toFixed(1)} km</Text>
@@ -97,7 +103,7 @@ export default function DashboardScreen() {
               <View style={[styles.scoreBadge, styles[`score${trip.score}` as keyof typeof styles]]}>
                 <Text style={styles.scoreText}>{trip.score}</Text>
               </View>
-            </View>
+            </TouchableOpacity>
           ))
         )}
       </View>
