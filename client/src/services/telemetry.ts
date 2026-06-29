@@ -42,10 +42,12 @@ export class TelemetryEngine {
     // Calculate acceleration: a = (v_final - v_initial) / deltaT
     const acceleration = (vFinal - vInitial) / deltaTSeconds;
 
+    let penaltyApplied = false;
     // Apply Kinetic Energy Acceleration Penalty for aggressive acceleration
     if (acceleration > 2.5) {
       const penaltyML = this.calculateAccelerationPenalty(vInitial, vFinal);
       this.totalPenaltyML += penaltyML;
+      penaltyApplied = true;
     }
 
     // Dynamic Telemetry Segmentation
@@ -60,6 +62,8 @@ export class TelemetryEngine {
     }
 
     this.lastLocation = location;
+    
+    return { penaltyApplied };
   }
 
   /**

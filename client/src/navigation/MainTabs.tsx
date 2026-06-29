@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import DashboardScreen from '../screens/DashboardScreen';
 import DriveScreen from '../screens/DriveScreen';
+import SettingsScreen from '../screens/SettingsScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -11,15 +12,23 @@ export default function MainTabs() {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarStyle: { backgroundColor: '#121212', borderTopColor: '#333' },
         tabBarActiveTintColor: '#4ade80',
-        tabBarInactiveTintColor: '#9ca3af',
-        tabBarIcon: ({ color, size }) => {
-          let iconName: any = 'help-circle';
+        tabBarInactiveTintColor: '#888',
+        tabBarStyle: {
+          backgroundColor: '#1e1e1e',
+          borderTopWidth: 1,
+          borderTopColor: '#333',
+          paddingBottom: 5,
+          height: 60,
+        },
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName: keyof typeof Ionicons.glyphMap = 'help';
           if (route.name === 'DashboardTab') {
-            iconName = 'bar-chart';
+            iconName = focused ? 'bar-chart' : 'bar-chart-outline';
           } else if (route.name === 'DriveTab') {
-            iconName = 'car-sport';
+            iconName = focused ? 'car-sport' : 'car-sport-outline';
+          } else if (route.name === 'SettingsTab') {
+            iconName = focused ? 'settings' : 'settings-outline';
           }
           return <Ionicons name={iconName} size={size} color={color} />;
         },
@@ -34,6 +43,11 @@ export default function MainTabs() {
         name="DriveTab" 
         component={DriveScreen} 
         options={{ title: 'Drive' }} 
+      />
+      <Tab.Screen 
+        name="SettingsTab" 
+        component={SettingsScreen} 
+        options={{ title: 'Settings' }} 
       />
     </Tab.Navigator>
   );

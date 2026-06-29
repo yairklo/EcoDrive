@@ -1,10 +1,9 @@
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
-
-import { TelemetryEngine } from './telemetry';
-
-import { Alert } from 'react-native';
+import { AppState, Alert } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import { TelemetryEngine } from './telemetry';
+import { audioCoach, getSettings } from './audioCoach';
 
 const LOCATION_TASK_NAME = 'background-location-task';
 export const engine = new TelemetryEngine();
@@ -18,11 +17,15 @@ export function setIsTripActive(active: boolean) {
   isTripActive = active;
   if (!active) {
     hasPromptedForTrip = false; // Reset when trip ends
+    continuousHighSpeedStart = 0;
+    lastTier = '';
   }
 }
 
 let fastContinuousStartTime = 0;
 let hasPromptedForTrip = false;
+let continuousHighSpeedStart = 0;
+let lastTier = '';
 
 // The callback for the background task
 TaskManager.defineTask(LOCATION_TASK_NAME, ({ data, error }) => {
@@ -35,19 +38,55 @@ TaskManager.defineTask(LOCATION_TASK_NAME, ({ data, error }) => {
     
     locations.forEach((loc: any) => {
       const speedMs = loc.coords.speed || 0;
+      const speedKmh = speedMs * 3.6;
       
       if (isTripActive) {
-        engine.processLocationUpdate(loc);
+        const result = engine.processLocationUpdate(loc);
+        
+        if (result && result.penaltyApplied) {
+          audioCoach.speakAccelerationAlert();
+        }
+
+        let currentTier = 'green';
+        if (speedKmh > 120) currentTier = 'red';
+        else if (speedKmh > 105) currentTier = 'orange';
+        else if (speedKmh > 90) currentTier = 'yellow';
+
+        if (speedKmh > 105) {
+          if (continuousHighSpeedStart === 0) {
+            continuousHighSpeedStart = loc.timestamp;
+          } else if ((loc.timestamp - continuousHighSpeedStart) > 5000) {
+            audioCoach.speakHighSpeedAlert();
+          }
+        } else {
+          continuousHighSpeedStart = 0;
+        }
+
+        if (currentTier !== lastTier && lastTier !== '') {
+          if (AppState.currentState === 'background') {
+            getSettings().then(settings => {
+              if (settings.headsUpBanners) {
+                Notifications.scheduleNotificationAsync({
+                  content: {
+                    title: '💡 Eco-Coach',
+                    body: `Velocity tier changed to ${currentTier.toUpperCase()}. Drop your speed to save on this target journey!`,
+                  },
+                  trigger: null,
+                }).catch(() => {});
+              }
+            });
+          }
+        }
+        lastTier = currentTier;
+
       } else {
         // Not in active trip, monitor for auto-start
-        // 20 km/h is ~5.55 m/s
         if (speedMs > 5.55) {
           if (fastContinuousStartTime === 0) {
             fastContinuousStartTime = loc.timestamp;
           } else {
             const durationSec = (loc.timestamp - fastContinuousStartTime) / 1000;
             if (durationSec >= 30 && !hasPromptedForTrip) {
-              // Trigger notification safely
               try {
                 Notifications.scheduleNotificationAsync({
                   content: {
@@ -55,7 +94,7 @@ TaskManager.defineTask(LOCATION_TASK_NAME, ({ data, error }) => {
                     body: "We noticed you're moving fast. Would you like to start tracking this trip to save fuel?",
                     data: { type: 'START_TRIP_PROMPT' },
                   },
-                  trigger: null, // trigger immediately
+                  trigger: null,
                 }).catch(() => {
                    Alert.alert(
                     "🚗 EcoDrive Detected a Drive!",
@@ -73,7 +112,6 @@ TaskManager.defineTask(LOCATION_TASK_NAME, ({ data, error }) => {
             }
           }
         } else {
-          // Reset if speed drops below threshold
           fastContinuousStartTime = 0;
         }
       }
@@ -108,9 +146,9 @@ export async function startBackgroundTracking() {
       distanceInterval: 10, // Update every 10 meters
       deferredUpdatesInterval: 5000, // Batch updates every 5 seconds
       foregroundService: {
-        notificationTitle: 'EcoDrive Tracking',
-        notificationBody: 'Recording trip to calculate fuel efficiency.',
-        notificationColor: '#4caf50',
+        notificationTitle: 'EcoDrive Active',
+        notificationBody: 'Calculating rolling trip efficiency...',
+        notificationColor: '#4ade80',
       },
     });
   }
