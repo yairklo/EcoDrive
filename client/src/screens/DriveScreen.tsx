@@ -176,8 +176,7 @@ export default function DriveScreen() {
       }
     } catch (e) {
       // Offline mock fallback
-      const mockDist = 45.5;
-      Alert.alert('Offline Mode', `Search failed. Using mock destination (${mockDist}km).`);
+      const mockDist = 20.0;
       setTargetCoords({ latitude: 32.0853, longitude: 34.7818 }); 
       setTotalEstimatedDist(mockDist);
       setRemainingDist(mockDist);
