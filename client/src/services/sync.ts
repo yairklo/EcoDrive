@@ -1,5 +1,5 @@
-import { api } from './api';
 import { TelemetryEngine } from './telemetry';
+import { outbox } from './outbox';
 
 export class SyncManager {
   private engine: TelemetryEngine;
@@ -37,19 +37,19 @@ export class SyncManager {
     }
 
     try {
-      await api.post('/api/trips/sync', {
+      await outbox.enqueue('TRIP_SYNC', {
         vehicleId: this.vehicleId,
         distanceCityKm: report.distanceCityKm,
         distanceHighwayKm: report.distanceHighwayKm,
         accelerationPenaltyMl: report.accelerationPenaltyMl,
       });
 
-      console.log('Successfully synced telemetry:', report);
+      console.log('Telemetry sent to outbox queue:', report);
       
-      // Reset after successful sync
+      // Reset after successful queue
       this.engine.reset();
     } catch (error) {
-      console.error('Failed to sync telemetry, data will be kept for next cycle:', error);
+      console.error('Failed to queue telemetry:', error);
     }
   }
 }

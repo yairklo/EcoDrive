@@ -33,6 +33,7 @@ model Vehicle {
 
 model TripSync {
   id                    String   @id @default(uuid())
+  clientUuid            String?  @unique
   vehicleId             String
   vehicle               Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   timestamp             DateTime @default(now())
@@ -44,6 +45,7 @@ model TripSync {
 
 model RefuelLog {
   id                   String   @id @default(uuid())
+  clientUuid           String?  @unique
   vehicleId            String
   vehicle              Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   timestamp            DateTime @default(now())

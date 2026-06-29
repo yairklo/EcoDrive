@@ -7,6 +7,7 @@ const tripSyncSchema = z.object({
   distanceCityKm: z.number().nonnegative(),
   distanceHighwayKm: z.number().nonnegative(),
   accelerationPenaltyMl: z.number().nonnegative(),
+  clientUuid: z.string().uuid().optional(),
 });
 
 export default async function tripRoutes(app: FastifyInstance) {
@@ -22,6 +23,16 @@ export default async function tripRoutes(app: FastifyInstance) {
       const vehicle = await prisma.vehicle.findUnique({ where: { id: data.vehicleId } });
       if (!vehicle || vehicle.ownerId !== decoded.userId) {
         return reply.status(404).send({ error: 'Vehicle not found or unauthorized' });
+      }
+
+      // Check Idempotency
+      if (data.clientUuid) {
+        const existing = await prisma.tripSync.findUnique({
+          where: { clientUuid: data.clientUuid },
+        });
+        if (existing) {
+          return reply.status(200).send({ message: 'Trip already synced', tripSync: existing });
+        }
       }
 
       const tripSync = await prisma.tripSync.create({

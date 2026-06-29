@@ -2,11 +2,12 @@ import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import prisma from '../utils/prisma';
 
-const createRefuelLogSchema = z.object({
+const refuelSchema = z.object({
   vehicleId: z.string().uuid(),
   odometer: z.number().int().positive(),
   litersPumped: z.number().positive(),
   costPerLiter: z.number().positive(),
+  clientUuid: z.string().uuid().optional(),
 });
 
 export default async function refuelRoutes(app: FastifyInstance) {

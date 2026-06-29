@@ -1,88 +1,65 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { api } from '../services/api';
+import { outbox } from '../services/outbox';
 
 type Props = {
+  route: any;
   navigation: NativeStackNavigationProp<any, any>;
 };
 
-export default function RefuelLogScreen({ navigation }: Props) {
-  const [vehicleId, setVehicleId] = useState('');
+export default function RefuelLogScreen({ route, navigation }: Props) {
+  const { vehicleId } = route.params || { vehicleId: 'local-test-uuid' };
   const [odometer, setOdometer] = useState('');
-  const [litersPumped, setLitersPumped] = useState('');
-  const [costPerLiter, setCostPerLiter] = useState('');
+  const [liters, setLiters] = useState('');
+  const [cost, setCost] = useState('');
 
-  const handleSubmit = async () => {
+  const submitLog = async () => {
     try {
-      await api.post('/api/refuel', {
+      await outbox.enqueue('REFUEL_LOG', {
         vehicleId,
         odometer: parseInt(odometer, 10),
-        litersPumped: parseFloat(litersPumped),
-        costPerLiter: parseFloat(costPerLiter),
+        litersPumped: parseFloat(liters),
+        costPerLiter: parseFloat(cost),
       });
-      Alert.alert('Success', 'Refuel log saved!');
-      setOdometer('');
-      setLitersPumped('');
-      setCostPerLiter('');
-    } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.error || 'Unknown error');
+
+      Alert.alert('Success', 'Refuel log queued successfully!');
+      navigation.goBack();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to queue log');
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Log Refueling</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Vehicle ID (UUID)"
-        value={vehicleId}
-        onChangeText={setVehicleId}
+      <Text style={styles.title}>Log Refuel</Text>
+      
+      <TextInput 
+        style={styles.input} 
+        placeholder="Odometer (km)" 
+        keyboardType="numeric" 
+        onChangeText={setOdometer} 
       />
-      <TextInput
-        style={styles.input}
-        placeholder="Current Odometer (km)"
-        value={odometer}
-        onChangeText={setOdometer}
-        keyboardType="numeric"
+      <TextInput 
+        style={styles.input} 
+        placeholder="Liters Pumped" 
+        keyboardType="numeric" 
+        onChangeText={setLiters} 
       />
-      <TextInput
-        style={styles.input}
-        placeholder="Liters Pumped"
-        value={litersPumped}
-        onChangeText={setLitersPumped}
-        keyboardType="numeric"
+      <TextInput 
+        style={styles.input} 
+        placeholder="Cost Per Liter" 
+        keyboardType="numeric" 
+        onChangeText={setCost} 
       />
-      <TextInput
-        style={styles.input}
-        placeholder="Cost Per Liter"
-        value={costPerLiter}
-        onChangeText={setCostPerLiter}
-        keyboardType="numeric"
-      />
-      <Button title="Save Log" onPress={handleSubmit} />
-      <Button title="Back to Vehicle" onPress={() => navigation.navigate('VehicleSetup')} />
+
+      <Button title="Save Log" onPress={submitLog} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 10,
-    marginBottom: 10,
-    borderRadius: 5,
-  },
+  container: { flex: 1, padding: 20, justifyContent: 'center' },
+  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
+  input: { borderWidth: 1, borderColor: '#ccc', padding: 10, borderRadius: 5, marginBottom: 15 },
 });

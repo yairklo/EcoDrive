@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "main": "index.ts",
   "dependencies": {
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-community/netinfo": "12.0.1",
     "@react-navigation/native": "^7.3.4",
     "@react-navigation/native-stack": "^7.17.6",
     "axios": "^1.18.1",
@@ -18,11 +20,13 @@
     "react-native": "0.85.3",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "4.25.2",
+    "uuid": "^7.0.3",
     "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/react": "~19.2.2",
+    "@types/uuid": "^10.0.0",
     "jest": "^30.4.2",
     "ts-jest": "^29.4.11",
     "typescript": "~6.0.3"
