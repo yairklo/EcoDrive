@@ -1,6 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DashboardScreen from '../screens/DashboardScreen';
 import DriveScreen from '../screens/DriveScreen';
 import SettingsScreen from '../screens/SettingsScreen';
@@ -8,6 +9,8 @@ import SettingsScreen from '../screens/SettingsScreen';
 const Tab = createBottomTabNavigator();
 
 export default function MainTabs() {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -18,8 +21,8 @@ export default function MainTabs() {
           backgroundColor: '#1e1e1e',
           borderTopWidth: 1,
           borderTopColor: '#333',
-          paddingBottom: 5,
-          height: 60,
+          paddingBottom: Math.max(insets.bottom, 5),
+          height: 60 + Math.max(0, insets.bottom - 5),
         },
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap = 'help';
