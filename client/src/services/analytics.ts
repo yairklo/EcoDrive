@@ -92,18 +92,16 @@ export const computeDashboardMetrics = async () => {
   const litersSaved = Math.max(0, baselineWastedLiters - totalWastedLiters);
   const moneySaved = litersSaved * costPerLiter;
 
-  // Recent trips with Eco-Score
+  // Recent trips with Positive Reinforcement
   const recentTrips = [...trips].sort((a, b) => b.date - a.date).slice(0, 5).map(t => {
     const tripDist = t.distanceCityKm + t.distanceHighwayKm;
-    const penaltyPerKm = tripDist > 0 ? t.accelerationPenaltyMl / tripDist : 0;
     
-    let score = 'A';
-    if (penaltyPerKm > 50) score = 'F';
-    else if (penaltyPerKm > 30) score = 'D';
-    else if (penaltyPerKm > 15) score = 'C';
-    else if (penaltyPerKm > 5) score = 'B';
+    const baselineWastedLiters = tripDist * 0.05; 
+    const actualWastedLiters = t.accelerationPenaltyMl / 1000;
+    const tripLitersSaved = Math.max(0, baselineWastedLiters - actualWastedLiters);
+    const tripMoneySaved = tripLitersSaved * costPerLiter;
 
-    return { ...t, score, totalDist: tripDist };
+    return { ...t, totalDist: tripDist, moneySaved: tripMoneySaved.toFixed(2) };
   });
 
   // OLS Calibration Status

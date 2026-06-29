@@ -100,8 +100,8 @@ export default function DashboardScreen() {
                 <Text style={styles.tripDate}>{new Date(trip.date).toLocaleDateString()}</Text>
                 <Text style={styles.tripDist}>{trip.totalDist.toFixed(1)} km</Text>
               </View>
-              <View style={[styles.scoreBadge, styles[`score${trip.score}` as keyof typeof styles]]}>
-                <Text style={styles.scoreText}>{trip.score}</Text>
+              <View style={styles.positiveBadge}>
+                <Text style={styles.positiveText}>+${trip.moneySaved}</Text>
               </View>
             </TouchableOpacity>
           ))
@@ -227,21 +227,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 4,
   },
-  scoreBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
+  positiveBadge: {
+    backgroundColor: '#1e3a2f',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#4ade80',
   },
-  scoreText: {
-    color: '#fff',
+  positiveText: {
+    color: '#4ade80',
     fontWeight: 'bold',
-    fontSize: 18,
+    fontSize: 14,
   },
-  scoreA: { backgroundColor: '#4caf50' },
-  scoreB: { backgroundColor: '#8bc34a' },
-  scoreC: { backgroundColor: '#ffeb3b' },
-  scoreD: { backgroundColor: '#ff9800' },
-  scoreF: { backgroundColor: '#f44336' },
 });

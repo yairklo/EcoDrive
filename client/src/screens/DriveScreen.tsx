@@ -32,7 +32,6 @@ export default function DriveScreen() {
   const [active, setActive] = useState(isTripActive);
   const [duration, setDuration] = useState(0);
   const [distance, setDistance] = useState(0);
-  const [penalties, setPenalties] = useState(0);
   const [gaugeColor, setGaugeColor] = useState('#4ade80'); 
   const [simActive, setSimActive] = useState(false);
   const [insights, setInsights] = useState<{ savedLitersPer100km: string, moneySavedPerHour: string } | null>(null);
@@ -115,7 +114,6 @@ export default function DriveScreen() {
         }
 
         if (report.accelerationPenaltyMl > lastPenaltyRef.current) {
-          setPenalties(p => p + 1);
           setGaugeColor('#ef4444'); 
           setTimeout(() => setGaugeColor(targetColor), 1500);
           lastPenaltyRef.current = report.accelerationPenaltyMl;
@@ -226,7 +224,6 @@ export default function DriveScreen() {
     setActive(true);
     setDuration(0);
     setDistance(0);
-    setPenalties(0);
     setInsights(null);
     engine.reset();
     lastPenaltyRef.current = 0;
