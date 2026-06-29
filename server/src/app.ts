@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
+import jwt from '@fastify/jwt';
 
 export const buildApp = () => {
   const app = Fastify({
@@ -9,6 +10,11 @@ export const buildApp = () => {
 
   // Security headers
   app.register(helmet);
+
+  // JWT config
+  app.register(jwt, {
+    secret: process.env.JWT_SECRET || 'super-secret-jwt-key-fallback'
+  });
 
   // CORS config
   app.register(cors, {
