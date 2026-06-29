@@ -23,12 +23,20 @@ export default function RefuelLogScreen({ route, navigation }: Props) {
         costPerLiter: parseFloat(cost),
       });
 
+      // Also append to permanent offline history
+      const { addRefuelToHistory } = require('../services/analytics');
+      await addRefuelToHistory({
+        odometer: parseInt(odometer, 10),
+        litersPumped: parseFloat(liters),
+        costPerLiter: parseFloat(cost),
+      });
+
       Alert.alert('Success', 'Refuel log queued successfully!');
       
       if (isOnboarding) {
         navigation.reset({
           index: 0,
-          routes: [{ name: 'Drive' }],
+          routes: [{ name: 'MainTabs' }],
         });
       } else {
         navigation.goBack();

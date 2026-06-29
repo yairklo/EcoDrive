@@ -44,7 +44,15 @@ export class SyncManager {
         accelerationPenaltyMl: report.accelerationPenaltyMl,
       });
 
-      console.log('Telemetry sent to outbox queue:', report);
+      // Also append to permanent offline history
+      const { addTripToHistory } = require('./analytics');
+      await addTripToHistory({
+        distanceCityKm: report.distanceCityKm,
+        distanceHighwayKm: report.distanceHighwayKm,
+        accelerationPenaltyMl: report.accelerationPenaltyMl,
+      });
+
+      console.log('Telemetry sent to outbox queue and local history:', report);
       
       // Reset after successful queue
       this.engine.reset();

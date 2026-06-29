@@ -7,7 +7,7 @@ import RegisterScreen from './src/screens/RegisterScreen';
 import VehicleSetupScreen from './src/screens/VehicleSetupScreen';
 import RefuelLogScreen from './src/screens/RefuelLogScreen';
 import AnalyticsScreen from './src/screens/AnalyticsScreen';
-import DriveScreen from './src/screens/DriveScreen';
+import MainTabs from './src/navigation/MainTabs';
 import { registerForPushNotificationsAsync, setupNotificationListeners } from './src/services/notifications';
 
 const Stack = createNativeStackNavigator();
@@ -26,13 +26,13 @@ export default function App() {
 
   return (
     <NavigationContainer ref={navigationRef}>
-      <Stack.Navigator initialRouteName="Login">
+      <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="VehicleSetup" component={VehicleSetupScreen} />
         <Stack.Screen name="RefuelLog" component={RefuelLogScreen} />
         <Stack.Screen name="Analytics" component={AnalyticsScreen} />
-        <Stack.Screen name="Drive" component={DriveScreen} />
+        <Stack.Screen name="MainTabs" component={MainTabs} />
       </Stack.Navigator>
     </NavigationContainer>
   );
