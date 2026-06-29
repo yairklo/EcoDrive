@@ -30,6 +30,13 @@ export default function LoginScreen({ navigation }: Props) {
     }
   };
 
+  const handleGuestMode = async () => {
+    // Generate local mock token for Guest Mode
+    await setToken('guest_uuid');
+    Alert.alert('Offline Mode', 'Continuing as Guest offline.');
+    navigation.navigate('VehicleSetup');
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>EcoDrive Login</Text>
@@ -50,6 +57,9 @@ export default function LoginScreen({ navigation }: Props) {
       />
       <Button title="Login" onPress={handleLogin} />
       <Button title="Go to Register" onPress={() => navigation.navigate('Register')} />
+      <View style={{ marginTop: 20 }}>
+        <Button title="Continue Offline (Guest)" color="#4caf50" onPress={handleGuestMode} />
+      </View>
     </View>
   );
 }

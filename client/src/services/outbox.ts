@@ -5,7 +5,7 @@ import { api } from './api';
 
 const OUTBOX_KEY = '@ecodrive_outbox';
 
-export type OutboxItemType = 'TRIP_SYNC' | 'REFUEL_LOG';
+export type OutboxItemType = 'TRIP_SYNC' | 'REFUEL_LOG' | 'VEHICLE_SETUP' | 'AUTH_SYNC';
 
 export interface OutboxItem {
   clientUuid: string;
@@ -19,7 +19,6 @@ export class OutboxQueue {
   private isFlushing = false;
 
   constructor() {
-    // Listen for network changes to automatically flush
     NetInfo.addEventListener(state => {
       if (state.isConnected && state.isInternetReachable) {
         this.flushQueue();
@@ -47,7 +46,7 @@ export class OutboxQueue {
 
   public async enqueue(type: OutboxItemType, payload: any): Promise<OutboxItem> {
     const queue = await this.getQueue();
-    const clientUuid = uuidv4();
+    const clientUuid = payload.vehicleId || uuidv4();
     
     const item: OutboxItem = {
       clientUuid,
@@ -60,10 +59,9 @@ export class OutboxQueue {
     queue.push(item);
     await this.saveQueue(queue);
 
-    // Attempt immediate sync if online
     const netState = await NetInfo.fetch();
     if (netState.isConnected && netState.isInternetReachable) {
-      this.flushQueue(); // background flush
+      this.flushQueue();
     }
 
     return item;
@@ -75,18 +73,27 @@ export class OutboxQueue {
 
     try {
       const queue = await this.getQueue();
-      const pendingItems = queue.filter(item => !item.synced);
+      let pendingItems = queue.filter(item => !item.synced);
 
       if (pendingItems.length === 0) {
         this.isFlushing = false;
         return;
       }
 
+      // Prioritize VEHICLE_SETUP first so subsequent items link correctly
+      pendingItems.sort((a, b) => {
+        if (a.type === 'VEHICLE_SETUP' && b.type !== 'VEHICLE_SETUP') return -1;
+        if (b.type === 'VEHICLE_SETUP' && a.type !== 'VEHICLE_SETUP') return 1;
+        return a.createdAt - b.createdAt;
+      });
+
       let modified = false;
 
       for (const item of pendingItems) {
         try {
-          if (item.type === 'TRIP_SYNC') {
+          if (item.type === 'VEHICLE_SETUP') {
+            await api.post('/api/vehicles', item.payload);
+          } else if (item.type === 'TRIP_SYNC') {
             await api.post('/api/trips/sync', item.payload);
           } else if (item.type === 'REFUEL_LOG') {
             await api.post('/api/refuel', item.payload);
@@ -95,14 +102,14 @@ export class OutboxQueue {
           modified = true;
         } catch (error: any) {
           console.error(`Outbox sync failed for ${item.type}:`, error);
-          // If it's a 4xx error (validation/auth), we might want to drop it to avoid infinite loop.
-          // For now, we will just leave it as false to retry later if it's 5xx/network.
+          if (error.response?.status === 401) {
+            // Unauthenticated (Guest Mode). We must halt the flush until the user logs in.
+            break;
+          }
         }
       }
 
       if (modified) {
-        // Remove synced items from queue to save space, or just mark them synced.
-        // We will remove synced items.
         const newQueue = queue.filter(item => !item.synced);
         await this.saveQueue(newQueue);
       }

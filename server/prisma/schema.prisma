@@ -19,9 +19,10 @@ model User {
 
 model Vehicle {
   id           String      @id @default(uuid())
+  clientUuid   String?     @unique
   ownerId      String
   owner        User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  type         VehicleType
+  type         String
   fuelCapacity Float       // In liters
   kCity        Float       @default(1.0)
   kHighway     Float       @default(1.0)

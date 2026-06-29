@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { api } from '../services/api';
+import { outbox } from '../services/outbox';
+import { v4 as uuidv4 } from 'uuid';
 
 type Props = {
   navigation: NativeStackNavigationProp<any, any>;
@@ -19,11 +20,12 @@ export default function VehicleSetupScreen({ navigation }: Props) {
     }
 
     try {
-      await api.post('/api/vehicles', { type, fuelCapacity: capacity });
-      Alert.alert('Success', 'Vehicle profile created!');
-      navigation.navigate('RefuelLog');
+      const vehicleId = uuidv4();
+      await outbox.enqueue('VEHICLE_SETUP', { type, fuelCapacity: capacity, vehicleId });
+      Alert.alert('Success', 'Vehicle profile queued locally!');
+      navigation.navigate('RefuelLog', { vehicleId });
     } catch (error: any) {
-      Alert.alert('Failed to create vehicle', error.response?.data?.error || 'Unknown error');
+      Alert.alert('Failed to create vehicle', 'Could not queue locally.');
     }
   };
 

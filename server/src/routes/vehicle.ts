@@ -5,6 +5,7 @@ import prisma from '../utils/prisma';
 const createVehicleSchema = z.object({
   type: z.enum(['Sedan', 'SUV', 'Compact', 'Hybrid']),
   fuelCapacity: z.number().positive(),
+  clientUuid: z.string().uuid().optional(),
 });
 
 const updateVehicleSchema = createVehicleSchema.partial();
@@ -31,10 +32,21 @@ export default async function vehicleRoutes(app: FastifyInstance) {
   app.post('/', async (request, reply) => {
     try {
       const decoded = request.user as any;
-      const { type, fuelCapacity } = createVehicleSchema.parse(request.body);
+      const { type, fuelCapacity, clientUuid } = createVehicleSchema.parse(request.body);
+
+      // Check Idempotency
+      if (clientUuid) {
+        const existing = await prisma.vehicle.findUnique({
+          where: { clientUuid },
+        });
+        if (existing) {
+          return reply.status(200).send({ message: 'Vehicle already synced', vehicle: existing });
+        }
+      }
 
       const vehicle = await prisma.vehicle.create({
         data: {
+          clientUuid,
           ownerId: decoded.userId,
           type,
           fuelCapacity,
