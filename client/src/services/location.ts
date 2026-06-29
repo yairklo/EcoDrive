@@ -5,6 +5,7 @@ import * as Notifications from 'expo-notifications';
 import { TelemetryEngine } from './telemetry';
 import { audioCoach, getSettings } from './audioCoach';
 import { OSRMService } from './osrm';
+import { fuelEngine } from './fuelEngine';
 
 const LOCATION_TASK_NAME = 'background-location-task';
 export const engine = new TelemetryEngine();
@@ -58,6 +59,21 @@ export async function processSingleLocation(loc: any) {
         speed: speedKmh,
         acceleration: result.currentAcceleration
       });
+      
+      // Calculate Fuel Engine Tick
+      const tickData = fuelEngine.calculateTickConsumption({
+        speed_kmh: speedKmh,
+        acceleration_mss: result.currentAcceleration,
+        road_type: roadData.roadClassification
+      });
+
+      // Update Local Physics Weights
+      fuelEngine.updateRoadWeights(
+        roadData.osmWayId, 
+        bearing, 
+        tickData.total_ml, 
+        tickData.is_accel_waste
+      );
     }
 
     // Evict old data (> 10s old)
