@@ -30,6 +30,13 @@ export const buildApp = () => {
     origin: '*', // For MVP, allow all or configure later
   });
 
+  // Security & Rate Limiting (Task 6.1)
+  app.register(import('@fastify/helmet'), { global: true });
+  app.register(import('@fastify/rate-limit'), {
+    max: 100,
+    timeWindow: '1 minute',
+  });
+
   // Register Routes
   app.register(import('./routes/auth'), { prefix: '/api/auth' });
   app.register(import('./routes/vehicle'), { prefix: '/api/vehicles' });

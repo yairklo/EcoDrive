@@ -138,9 +138,9 @@ To ensure maximum scalability, extensibility, and security, the platform is stru
     * Present direct financial summaries, environmental preservation metrics (CO₂ prevented), and an overall "Eco-Score" grading performance from 0 to 100.
 
 ### Phase 6: System Hardening, Safety, & Scale Auditing (SEC-TEST)
-* [ ] **TASK-6.1: Input Data Sanitization & Strict Request Validation**
+* [x] **TASK-6.1: Input Data Sanitization & Strict Request Validation**
     * Enforce structural input verification middleware on all public endpoints to mitigate injection and tampering vulnerabilities.
     * Incorporate rate-limiting limits across security paths to block brute-force attempts.
-* [ ] **TASK-6.2: System Integration Testing Framework**
+* [x] **TASK-6.2: System Integration Testing Framework**
     * Write a test suite (e.g., using Jest) to verify the physics engine logic using mocked GPS tracking data arrays.
     * Verify database transactional isolation and error resilience when input data is malformed.
