@@ -13,6 +13,7 @@ import AnalyticsScreen from './src/screens/AnalyticsScreen';
 import MainTabs from './src/navigation/MainTabs';
 import TripDetailScreen from './src/screens/TripDetailScreen';
 import { registerForPushNotificationsAsync, setupNotificationListeners } from './src/services/notifications';
+import { initVehiclePhysics } from './src/services/vehicleProfile';
 
 const Stack = createNativeStackNavigator();
 
@@ -27,6 +28,7 @@ export default function App() {
 
     const checkSession = async () => {
       try {
+        await initVehiclePhysics(); // Restore physics engine config
         const userProfile = await AsyncStorage.getItem('user_profile');
         if (userProfile) {
           setInitialRoute('MainTabs');

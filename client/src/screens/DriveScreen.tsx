@@ -11,7 +11,8 @@ import {
   setIsTripActive, 
   isTripActive,
   startBackgroundTracking, 
-  stopBackgroundTracking 
+  stopBackgroundTracking,
+  processSingleLocation
 } from '../services/location';
 import { outbox } from '../services/outbox';
 import { addTripToHistory } from '../services/analytics';
@@ -214,7 +215,7 @@ export default function DriveScreen() {
           coords: { speed: speedMs }
         };
         
-        engine.processLocationUpdate(mockLoc);
+        processSingleLocation(mockLoc);
       }, 1000);
     } else {
       await startBackgroundTracking();

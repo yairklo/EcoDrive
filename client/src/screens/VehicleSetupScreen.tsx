@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert, TouchableOpacity, ScrollView } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { outbox } from '../services/outbox';
-import { setVehiclePhysics } from '../services/location';
+import { saveVehicleProfile } from '../services/vehicleProfile';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type Props = {
   navigation: NativeStackNavigationProp<any, any>;
@@ -57,8 +58,16 @@ export default function VehicleSetupScreen({ navigation }: Props) {
         vehicleId,
       };
 
-      // Set physics for local telemetry calculations
-      setVehiclePhysics(massKg, selectedCategory.eff);
+      // Persist physics configuration locally
+      await saveVehicleProfile({
+        type: selectedCategory.label,
+        massKg,
+        thermalEfficiency: selectedCategory.eff,
+        fuelCapacity: capacity
+      });
+
+      // Ensure user_profile flag is set to skip onboarding next time
+      await AsyncStorage.setItem('user_profile', JSON.stringify({ vehicleId }));
 
       await outbox.enqueue('VEHICLE_SETUP', payload);
       Alert.alert('Success', 'Vehicle profile configured!');

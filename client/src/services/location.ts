@@ -27,6 +27,87 @@ let hasPromptedForTrip = false;
 let continuousHighSpeedStart = 0;
 let lastTier = '';
 
+export function processSingleLocation(loc: any) {
+  const speedMs = loc.coords.speed || 0;
+  const speedKmh = speedMs * 3.6;
+  
+  if (isTripActive) {
+    const result = engine.processLocationUpdate(loc);
+    
+    if (result && result.penaltyApplied) {
+      audioCoach.speakAccelerationAlert();
+    }
+
+    let currentTier = 'green';
+    if (speedKmh > 120) currentTier = 'red';
+    else if (speedKmh > 105) currentTier = 'orange';
+    else if (speedKmh > 90) currentTier = 'yellow';
+
+    if (speedKmh > 105) {
+      if (continuousHighSpeedStart === 0) {
+        continuousHighSpeedStart = loc.timestamp;
+      } else if ((loc.timestamp - continuousHighSpeedStart) > 5000) {
+        audioCoach.speakHighSpeedAlert();
+      }
+    } else {
+      continuousHighSpeedStart = 0;
+    }
+
+    if (currentTier !== lastTier && lastTier !== '') {
+      if (AppState.currentState === 'background') {
+        getSettings().then(settings => {
+          if (settings.headsUpBanners) {
+            Notifications.scheduleNotificationAsync({
+              content: {
+                title: '💡 Eco-Coach',
+                body: `Velocity tier changed to ${currentTier.toUpperCase()}. Drop your speed to save on this target journey!`,
+              },
+              trigger: null,
+            }).catch(() => {});
+          }
+        });
+      }
+    }
+    lastTier = currentTier;
+
+  } else {
+    // Not in active trip, monitor for auto-start
+    if (speedMs > 5.55) {
+      if (fastContinuousStartTime === 0) {
+        fastContinuousStartTime = loc.timestamp;
+      } else {
+        const durationSec = (loc.timestamp - fastContinuousStartTime) / 1000;
+        if (durationSec >= 30 && !hasPromptedForTrip) {
+          try {
+            Notifications.scheduleNotificationAsync({
+              content: {
+                title: "🚗 EcoDrive Detected a Drive!",
+                body: "We noticed you're moving fast. Would you like to start tracking this trip to save fuel?",
+                data: { type: 'START_TRIP_PROMPT' },
+              },
+              trigger: null,
+            }).catch(() => {
+               Alert.alert(
+                "🚗 EcoDrive Detected a Drive!",
+                "We noticed you're moving fast. Would you like to start tracking this trip to save fuel?"
+              );
+            });
+          } catch (e) {
+            console.log('Expo Go notification blocked, using Alert fallback');
+            Alert.alert(
+              "🚗 EcoDrive Detected a Drive!",
+              "We noticed you're moving fast. Would you like to start tracking this trip to save fuel?"
+            );
+          }
+          hasPromptedForTrip = true;
+        }
+      }
+    } else {
+      fastContinuousStartTime = 0;
+    }
+  }
+}
+
 // The callback for the background task
 TaskManager.defineTask(LOCATION_TASK_NAME, ({ data, error }) => {
   if (error) {
@@ -35,87 +116,7 @@ TaskManager.defineTask(LOCATION_TASK_NAME, ({ data, error }) => {
   }
   if (data) {
     const { locations } = data as any;
-    
-    locations.forEach((loc: any) => {
-      const speedMs = loc.coords.speed || 0;
-      const speedKmh = speedMs * 3.6;
-      
-      if (isTripActive) {
-        const result = engine.processLocationUpdate(loc);
-        
-        if (result && result.penaltyApplied) {
-          audioCoach.speakAccelerationAlert();
-        }
-
-        let currentTier = 'green';
-        if (speedKmh > 120) currentTier = 'red';
-        else if (speedKmh > 105) currentTier = 'orange';
-        else if (speedKmh > 90) currentTier = 'yellow';
-
-        if (speedKmh > 105) {
-          if (continuousHighSpeedStart === 0) {
-            continuousHighSpeedStart = loc.timestamp;
-          } else if ((loc.timestamp - continuousHighSpeedStart) > 5000) {
-            audioCoach.speakHighSpeedAlert();
-          }
-        } else {
-          continuousHighSpeedStart = 0;
-        }
-
-        if (currentTier !== lastTier && lastTier !== '') {
-          if (AppState.currentState === 'background') {
-            getSettings().then(settings => {
-              if (settings.headsUpBanners) {
-                Notifications.scheduleNotificationAsync({
-                  content: {
-                    title: '💡 Eco-Coach',
-                    body: `Velocity tier changed to ${currentTier.toUpperCase()}. Drop your speed to save on this target journey!`,
-                  },
-                  trigger: null,
-                }).catch(() => {});
-              }
-            });
-          }
-        }
-        lastTier = currentTier;
-
-      } else {
-        // Not in active trip, monitor for auto-start
-        if (speedMs > 5.55) {
-          if (fastContinuousStartTime === 0) {
-            fastContinuousStartTime = loc.timestamp;
-          } else {
-            const durationSec = (loc.timestamp - fastContinuousStartTime) / 1000;
-            if (durationSec >= 30 && !hasPromptedForTrip) {
-              try {
-                Notifications.scheduleNotificationAsync({
-                  content: {
-                    title: "🚗 EcoDrive Detected a Drive!",
-                    body: "We noticed you're moving fast. Would you like to start tracking this trip to save fuel?",
-                    data: { type: 'START_TRIP_PROMPT' },
-                  },
-                  trigger: null,
-                }).catch(() => {
-                   Alert.alert(
-                    "🚗 EcoDrive Detected a Drive!",
-                    "We noticed you're moving fast. Would you like to start tracking this trip to save fuel?"
-                  );
-                });
-              } catch (e) {
-                console.log('Expo Go notification blocked, using Alert fallback');
-                Alert.alert(
-                  "🚗 EcoDrive Detected a Drive!",
-                  "We noticed you're moving fast. Would you like to start tracking this trip to save fuel?"
-                );
-              }
-              hasPromptedForTrip = true;
-            }
-          }
-        } else {
-          fastContinuousStartTime = 0;
-        }
-      }
-    });
+    locations.forEach((loc: any) => processSingleLocation(loc));
 
     if (isTripActive) {
       console.log('Current Telemetry:', engine.getTelemetryReport());
