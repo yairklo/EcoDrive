@@ -17,6 +17,7 @@ import {
 import { outbox } from '../services/outbox';
 import { addTripToHistory } from '../services/analytics';
 import { TelemetryEngine } from '../services/telemetry';
+import { overlayManager } from '../services/overlayManager';
 
 const darkMapStyle = [
   { "elementType": "geometry", "stylers": [{ "color": "#242f3e" }] },
@@ -63,6 +64,13 @@ export default function DriveScreen() {
       if (status !== 'granted') return;
       let location = await Location.getCurrentPositionAsync({});
       setCurrentCoords(location.coords);
+
+      // Initialize System Overlay
+      overlayManager.init();
+      const hasOverlayPerm = await overlayManager.checkPermissions();
+      if (!hasOverlayPerm) {
+        await overlayManager.requestPermissions();
+      }
     })();
 
     const urbanAlertSub = DeviceEventEmitter.addListener('URBAN_ALERT_TRIGGERED', (data) => {
