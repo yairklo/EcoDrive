@@ -64,7 +64,9 @@ export default async function refuelRoutes(app: FastifyInstance) {
         data,
       });
 
-      // NOTE: Task 3.3 (Adaptive Calibration Engine) will be hooked here later.
+      // Task 3.3: Hook into Adaptive Calibration Engine
+      const { calibrateVehicle } = await import('../utils/calibration');
+      await calibrateVehicle(data.vehicleId);
 
       return reply.status(201).send({ message: 'Refuel log created successfully', log: refuelLog });
     } catch (error) {
