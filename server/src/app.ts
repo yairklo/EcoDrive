@@ -15,6 +15,9 @@ export const buildApp = () => {
     origin: '*', // For MVP, allow all or configure later
   });
 
+  // Register Routes
+  app.register(import('./routes/auth'), { prefix: '/api/auth' });
+
   // Centralized Error Handler
   app.setErrorHandler((error, request, reply) => {
     app.log.error(error);
