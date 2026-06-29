@@ -213,15 +213,21 @@ export default function DriveScreen() {
         const t = simTickRef.current;
         let currentSpeedKmh = 0;
 
-        if (t <= 10) {
-          currentSpeedKmh = t * 4; 
-        } else if (t === 11) {
-          currentSpeedKmh = 65; 
-        } else if (t >= 12 && t <= 20) {
+        if (t <= 5) {
+          // Phase 1: Aggressive Urban Acceleration (>2.5 m/s2)
+          // 0 to 55 km/h in 5 seconds (11 km/h per sec = ~3.05 m/s2)
+          currentSpeedKmh = t * 11; 
+        } else if (t > 5 && t <= 10) {
+          // Coasting at 55 km/h to allow the 4-second buffer to trigger the Urban Alert
+          currentSpeedKmh = 55;
+        } else if (t >= 11 && t <= 20) {
+          // Phase 2: Highway transition
           currentSpeedKmh = 95; 
         } else if (t >= 21 && t <= 30) {
+          // Phase 3: Highway speeding
           currentSpeedKmh = 110; 
         } else if (t >= 31 && t <= 40) {
+          // Phase 4: Deceleration
           currentSpeedKmh = Math.max(0, 110 - ((t - 30) * 11)); 
         }
 
@@ -230,7 +236,12 @@ export default function DriveScreen() {
         
         const mockLoc: any = {
           timestamp: Date.now(),
-          coords: { speed: speedMs }
+          coords: { 
+            speed: speedMs,
+            latitude: currentCoords?.latitude || 32.0853,
+            longitude: currentCoords?.longitude || 34.7818,
+            heading: 90
+          }
         };
         
         processSingleLocation(mockLoc);
