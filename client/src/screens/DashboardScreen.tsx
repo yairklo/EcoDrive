@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import { computeDashboardMetrics } from '../services/analytics';
 
 export default function DashboardScreen() {
@@ -35,80 +36,89 @@ export default function DashboardScreen() {
   }
 
   return (
-    <ScrollView 
-      style={styles.container}
-      contentContainerStyle={styles.contentContainer}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#4caf50" />}
-    >
-      <Text style={styles.headerTitle}>EcoDrive Dashboard</Text>
+    <View style={{ flex: 1, backgroundColor: '#121212' }}>
+      <ScrollView 
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#4caf50" />}
+      >
+        <Text style={styles.headerTitle}>EcoDrive Dashboard</Text>
 
-      {/* Financial Savings Card */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Savings vs Baseline</Text>
-        <View style={styles.row}>
-          <View style={styles.statBox}>
-            <Text style={styles.statVal}>${metrics.moneySaved}</Text>
-            <Text style={styles.statLabel}>Saved</Text>
-          </View>
-          <View style={styles.statBox}>
-            <Text style={styles.statVal}>{metrics.litersSaved} L</Text>
-            <Text style={styles.statLabel}>Fuel Saved</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* OLS Calibration Status Widget */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>OLS Calibration Status</Text>
-        <Text style={[styles.calibrationStatus, metrics.refuelsCount >= 3 ? styles.high : styles.low]}>
-          {metrics.calibrationStatus}
-        </Text>
-        {metrics.refuelsCount >= 3 && (
+        {/* Financial Savings Card */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Savings vs Baseline</Text>
           <View style={styles.row}>
-            <Text style={styles.factor}>k_city: {metrics.kCity}</Text>
-            <Text style={styles.factor}>k_hwy: {metrics.kHighway}</Text>
+            <View style={styles.statBox}>
+              <Text style={styles.statVal}>${metrics.moneySaved}</Text>
+              <Text style={styles.statLabel}>Saved</Text>
+            </View>
+            <View style={styles.statBox}>
+              <Text style={styles.statVal}>{metrics.litersSaved} L</Text>
+              <Text style={styles.statLabel}>Fuel Saved</Text>
+            </View>
           </View>
-        )}
-      </View>
-
-      {/* Driving Split Visualizer */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Driving Split</Text>
-        <View style={styles.splitBar}>
-          <View style={[styles.cityBar, { width: `${metrics.cityRatio}%` }]} />
-          <View style={[styles.hwyBar, { width: `${metrics.highwayRatio}%` }]} />
         </View>
-        <View style={styles.row}>
-          <Text style={styles.cityLabel}>City: {metrics.cityRatio}%</Text>
-          <Text style={styles.hwyLabel}>Highway: {metrics.highwayRatio}%</Text>
+
+        {/* OLS Calibration Status Widget */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>OLS Calibration Status</Text>
+          <Text style={[styles.calibrationStatus, metrics.refuelsCount >= 3 ? styles.high : styles.low]}>
+            {metrics.calibrationStatus}
+          </Text>
+          {metrics.refuelsCount >= 3 && (
+            <View style={styles.row}>
+              <Text style={styles.factor}>k_city: {metrics.kCity}</Text>
+              <Text style={styles.factor}>k_hwy: {metrics.kHighway}</Text>
+            </View>
+          )}
         </View>
-      </View>
 
-      {/* Recent Trips Feed */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Recent Trips</Text>
-        {metrics.recentTrips.length === 0 ? (
-          <Text style={styles.empty}>No trips recorded yet.</Text>
-        ) : (
-          metrics.recentTrips.map((trip: any) => (
-            <TouchableOpacity 
-              key={trip.id} 
-              style={styles.tripRow}
-              onPress={() => navigation.navigate('TripDetail', { trip })}
-            >
-              <View>
-                <Text style={styles.tripDate}>{new Date(trip.date).toLocaleDateString()}</Text>
-                <Text style={styles.tripDist}>{trip.totalDist.toFixed(1)} km</Text>
-              </View>
-              <View style={styles.positiveBadge}>
-                <Text style={styles.positiveText}>+${trip.moneySaved}</Text>
-              </View>
-            </TouchableOpacity>
-          ))
-        )}
-      </View>
+        {/* Driving Split Visualizer */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Driving Split</Text>
+          <View style={styles.splitBar}>
+            <View style={[styles.cityBar, { width: `${metrics.cityRatio}%` }]} />
+            <View style={[styles.hwyBar, { width: `${metrics.highwayRatio}%` }]} />
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.cityLabel}>City: {metrics.cityRatio}%</Text>
+            <Text style={styles.hwyLabel}>Highway: {metrics.highwayRatio}%</Text>
+          </View>
+        </View>
 
-    </ScrollView>
+        {/* Recent Trips Feed */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Recent Trips</Text>
+          {metrics.recentTrips.length === 0 ? (
+            <Text style={styles.empty}>No trips recorded yet.</Text>
+          ) : (
+            metrics.recentTrips.map((trip: any) => (
+              <TouchableOpacity 
+                key={trip.id} 
+                style={styles.tripRow}
+                onPress={() => navigation.navigate('TripDetail', { trip })}
+              >
+                <View>
+                  <Text style={styles.tripDate}>{new Date(trip.date).toLocaleDateString()}</Text>
+                  <Text style={styles.tripDist}>{trip.totalDist.toFixed(1)} km</Text>
+                </View>
+                <View style={styles.positiveBadge}>
+                  <Text style={styles.positiveText}>+${trip.moneySaved}</Text>
+                </View>
+              </TouchableOpacity>
+            ))
+          )}
+        </View>
+      </ScrollView>
+
+      <TouchableOpacity 
+        style={styles.fab} 
+        onPress={() => navigation.navigate('RefuelLog')}
+      >
+        <Ionicons name="water" size={20} color="#121212" />
+        <Text style={styles.fabText}>Log Refuel</Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
@@ -239,5 +249,26 @@ const styles = StyleSheet.create({
     color: '#4ade80',
     fontWeight: 'bold',
     fontSize: 14,
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    backgroundColor: '#4ade80',
+    borderRadius: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  fabText: {
+    color: '#121212',
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginLeft: 8,
   },
 });
