@@ -64,64 +64,64 @@ To ensure maximum scalability, extensibility, and security, the platform is stru
 ## 2. Epics & Modular Task Breakdown
 
 ### Phase 1: Foundations & Infrastructure Setup (INFRA)
-* [ ] **TASK-1.1: Core Repository and Monorepo/Decoupled Setup**
+* [x] **TASK-1.1: Core Repository and Monorepo/Decoupled Setup**
     * Initialize a structured multi-folder directory structure (`/client` and `/server`).
     * Configure basic code formatters and linters (ESLint, Prettier).
     * Set up `.gitignore` for security keys, `.env` boilerplate profiles, and operational environment profiles.
-* [ ] **TASK-1.2: Server Setup & Express/Fastify Boilerplate**
+* [x] **TASK-1.2: Server Setup & Express/Fastify Boilerplate**
     * Initialize Node.js backend environment with TypeScript/JavaScript.
     * Implement centralized error-handling middleware to intercept runtime faults cleanly.
     * Add CORS configurations, `helmet` headers for foundational HTTP security, and standard JSON input parsers.
-* [ ] **TASK-1.3: Database Connections & Schema Models Setup**
+* [x] **TASK-1.3: Database Connections & Schema Models Setup**
     * Establish structural connections to primary instance storage with resilient automatic retry patterns.
     * Define Core Schema Models:
         * `User`: Email (hashed), encrypted password string, profile preferences, metadata records.
         * `Vehicle`: Owner ID, structural type mapping (Sedan, SUV, Compact, Hybrid), fuel tank total volume capacity.
         * `RefuelLog`: Vehicle Link ID, timestamp entry, current odometer reading integer, total liters pumped floating-value, financial cost-per-liter pricing metrics.
-* [ ] **TASK-1.4: Production CI/CD Pipeline & Deployment Pre-configurations**
+* [x] **TASK-1.4: Production CI/CD Pipeline & Deployment Pre-configurations**
     * Create multi-stage Dockerfiles or deployment workflows targeted for seamless cloud hosting runners (Render/Vercel).
     * Configure dynamic, environment-isolated configuration pipelines (`dev`, `staging`, `production`).
 
 ### Phase 2: Authentication & Secure Account Operations (AUTH)
-* [ ] **TASK-2.1: Secure User Registration & Cryptographic Password Storage**
+* [x] **TASK-2.1: Secure User Registration & Cryptographic Password Storage**
     * Construct standard API registration endpoint validating constraints (valid email syntax, password string strength bounds).
     * Integrate secure hashing algorithms (`bcrypt` / `argon2`) to ensure credentials are never preserved as raw text strings.
-* [ ] **TASK-2.2: Stateless Session Token Generation & User Login Pipelines**
+* [x] **TASK-2.2: Stateless Session Token Generation & User Login Pipelines**
     * Develop access authentication endpoint evaluating submitted parameters against encrypted system data.
     * Issue stateless JWT authorization markers packed with strict token expiration properties.
-* [ ] **TASK-2.3: API Gateway Authorization & Route Protection Middleware**
+* [x] **TASK-2.3: API Gateway Authorization & Route Protection Middleware**
     * Implement modular authentication barrier middleware filtering incoming server calls.
     * Intercept, inspect, and map valid inbound request headers (`Authorization: Bearer <JWT>`) to isolate user execution scope safely.
-* [ ] **TASK-2.4: Mobile Authentication Interface & Secure Storage Layer**
+* [x] **TASK-2.4: Mobile Authentication Interface & Secure Storage Layer**
     * Develop login and registration screens within the mobile React Native directory.
     * Incorporate secure phone storage mechanisms (`expo-secure-store` / native Keychains) to retain structural JWT instances across restarts.
 
 ### Phase 3: Vehicle Profiles & Odometer Refueling Logbooks (VEHICLE)
-* [ ] **TASK-3.1: Vehicle Onboarding API Engine & Management Routes**
+* [x] **TASK-3.1: Vehicle Onboarding API Engine & Management Routes**
     * Construct operational API pathways allowing users to create, view, update, and remove physical vehicle items.
     * Implement validation to prevent negative values for storage parameters (e.g., fuel tank capacity limits).
-* [ ] **TASK-3.2: Fuel Journal Data Submissions & Logs Management API**
+* [x] **TASK-3.2: Fuel Journal Data Submissions & Logs Management API**
     * Construct endpoint allowing entries for historical fill-up logs.
     * Implement server-side logical cross-examinations ensuring current odometer metrics are greater than previous logs.
-* [ ] **TASK-3.3: Adaptive Calibration Engine (Multi-Variable Dual-Profile Calibration Framework)**
+* [x] **TASK-3.3: Adaptive Calibration Engine (Multi-Variable Dual-Profile Calibration Framework)**
     * Develop a robust computational utility triggered after successive refueling updates.
     * Require at least 3 refueling logs to execute an Ordinary Least Squares (OLS) Linear Regression using matrix math (via `mathjs`).
     * *Algorithm:* Independent variables must be accumulated predicted city fuel burn and predicted highway fuel burn. Dependent variable is the actual total fuel pumped.
     * Isolate and save two independent correction factors: `k_city` and `k_highway` to eliminate guessing fuel distribution.
-* [ ] **TASK-3.4: Vehicle Profile Setup UI Forms & Log Entry Dialogues**
+* [x] **TASK-3.4: Vehicle Profile Setup UI Forms & Log Entry Dialogues**
     * Design interactive interface views allowing users to assign their transport layout configurations.
     * Build manual reporting submission windows for gas station refills, immediately recalculating vehicle stats.
 
 ### Phase 4: GPS Tracking & Real-Time Physics Calculus Engine (TRIP)
-* [ ] **TASK-4.1: Real-Time Mobile Location Capture & Background Runners**
+* [x] **TASK-4.1: Real-Time Mobile Location Capture & Background Runners**
     * Incorporate safe GPS background tracking permissions and runtime systems (`expo-location`).
     * Enforce structured data capture configurations balancing high precision (tracking deltas every few meters) against aggressive battery drain.
-* [ ] **TASK-4.2: Velocity-to-Consumption Telemetry Engine (The Core Physics Calculator)**
+* [x] **TASK-4.2: Velocity-to-Consumption Telemetry Engine (The Core Physics Calculator)**
     * **Dynamic Telemetry Segmentation:** Real-time GPS data streams must be actively sorted into two tracking buckets during a trip: `Distance_City` (0-60 km/h or high frequency of stops) and `Distance_Highway` (60+ km/h steady cruise).
     * **Kinetic Energy Acceleration Penalties:** Incorporate accelerometer monitoring to capture acceleration epochs (a > 2.5 m/s²).
     * Implement the strict physics-based kinetic energy delta formula: `Delta_E = 0.5 * m * (v_final² - v_initial²)`
     * Assume a baseline standard vehicle mass (`m = 1400 kg`) and a standard internal combustion engine thermal efficiency of `30%` to calculate the precise baseline fuel-burn penalty in milliliters for every aggressive acceleration event.
-* [ ] **TASK-4.3: Real-Time Live In-Trip Server Synchronization Endpoint**
+* [x] **TASK-4.3: Real-Time Live In-Trip Server Synchronization Endpoint**
     * Construct light data ingestion API or stateful WebSocket payload standard accepting telemetry records.
     * Process inbound stream variables to log ongoing trip states securely without blocking core system performance.
 
