@@ -16,6 +16,15 @@ export const buildApp = () => {
     secret: process.env.JWT_SECRET || 'super-secret-jwt-key-fallback'
   });
 
+  // Authentication Middleware
+  app.decorate('authenticate', async (request: any, reply: any) => {
+    try {
+      await request.jwtVerify();
+    } catch (err) {
+      reply.status(401).send({ error: 'Unauthorized', message: 'Invalid or missing token' });
+    }
+  });
+
   // CORS config
   app.register(cors, {
     origin: '*', // For MVP, allow all or configure later
