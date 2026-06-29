@@ -61,4 +61,33 @@ export default async function tripRoutes(app: FastifyInstance) {
       return reply.status(500).send({ error: 'Internal Server Error' });
     }
   });
+
+  // Get aggregated analytics for vehicle
+  app.get('/vehicle/:vehicleId/analytics', async (request, reply) => {
+    try {
+      const decoded = request.user as any;
+      const { vehicleId } = request.params as { vehicleId: string };
+
+      const vehicle = await prisma.vehicle.findUnique({ where: { id: vehicleId } });
+      if (!vehicle || vehicle.ownerId !== decoded.userId) {
+        return reply.status(404).send({ error: 'Vehicle not found or unauthorized' });
+      }
+
+      const aggregations = await prisma.tripSync.aggregate({
+        where: { vehicleId },
+        _sum: {
+          distanceCityKm: true,
+          distanceHighwayKm: true,
+          accelerationPenaltyMl: true,
+        },
+        _count: {
+          id: true,
+        },
+      });
+
+      return reply.send({ analytics: aggregations });
+    } catch (error) {
+      app.log.error(error);
+      return reply.status(500).send({ error: 'Internal Server Error' });
+    }
 }
