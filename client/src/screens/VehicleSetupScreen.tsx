@@ -2,11 +2,18 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert, TouchableOpacity, ScrollView } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { outbox } from '../services/outbox';
-import { v4 as uuidv4 } from 'uuid';
 import { setVehiclePhysics } from '../services/location';
 
 type Props = {
   navigation: NativeStackNavigationProp<any, any>;
+};
+
+const generateUUID = () => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
 };
 
 const CATEGORIES = [
@@ -41,7 +48,7 @@ export default function VehicleSetupScreen({ navigation }: Props) {
     }
 
     try {
-      const vehicleId = uuidv4();
+      const vehicleId = generateUUID();
       const payload = {
         type: selectedCategory.label,
         fuelCapacity: capacity,

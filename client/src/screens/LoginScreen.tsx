@@ -5,10 +5,17 @@ import { api } from '../services/api';
 import { setToken } from '../services/auth';
 import { AuthSchema } from '../schemas/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { v4 as uuidv4 } from 'uuid';
 
 type Props = {
   navigation: NativeStackNavigationProp<any, any>;
+};
+
+const generateUUID = () => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
 };
 
 export default function LoginScreen({ navigation }: Props) {
@@ -34,7 +41,7 @@ export default function LoginScreen({ navigation }: Props) {
 
   const handleGuestMode = async () => {
     try {
-      const guestId = `guest_user_${uuidv4()}`;
+      const guestId = `guest_user_${generateUUID()}`;
       const mockToken = 'mock_guest_jwt_token';
       
       const guestProfile = {
