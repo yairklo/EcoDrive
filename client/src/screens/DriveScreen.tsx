@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, Switch } from 'react-native';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
@@ -23,10 +23,13 @@ export default function DriveScreen() {
   const [distance, setDistance] = useState(0);
   const [penalties, setPenalties] = useState(0);
   const [gaugeColor, setGaugeColor] = useState('#4ade80'); 
+  const [simActive, setSimActive] = useState(false);
   
   const lastPenaltyRef = useRef(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const metricsRef = useRef<NodeJS.Timeout | null>(null);
+  const simTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const simTickRef = useRef(0);
 
   useEffect(() => {
     let subscription: Location.LocationSubscription;
@@ -35,8 +38,10 @@ export default function DriveScreen() {
       subscription = await Location.watchPositionAsync(
         { accuracy: Location.Accuracy.High, distanceInterval: 5 },
         (loc) => {
-          const currentSpeed = (loc.coords.speed || 0) * 3.6; 
-          setSpeed(currentSpeed);
+          if (!simActive) {
+            const currentSpeed = (loc.coords.speed || 0) * 3.6; 
+            setSpeed(currentSpeed);
+          }
         }
       );
     })();
@@ -44,7 +49,7 @@ export default function DriveScreen() {
     return () => {
       if (subscription) subscription.remove();
     };
-  }, []);
+  }, [simActive]);
 
   useEffect(() => {
     if (active) {
@@ -66,16 +71,48 @@ export default function DriveScreen() {
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
       if (metricsRef.current) clearInterval(metricsRef.current);
+      if (simTimerRef.current) clearInterval(simTimerRef.current);
     }
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (metricsRef.current) clearInterval(metricsRef.current);
+      if (simTimerRef.current) clearInterval(simTimerRef.current);
     };
   }, [active]);
 
   const handleStartTrip = async () => {
-    await startBackgroundTracking();
+    if (simActive) {
+      simTickRef.current = 0;
+      simTimerRef.current = setInterval(() => {
+        simTickRef.current += 1;
+        const t = simTickRef.current;
+        let currentSpeedKmh = 0;
+
+        if (t <= 10) {
+          currentSpeedKmh = t * 4; // 0 to 40 km/h
+        } else if (t === 11) {
+          currentSpeedKmh = 65; // Sudden spike
+        } else if (t >= 12 && t <= 30) {
+          currentSpeedKmh = 95; // Steady highway
+        } else if (t >= 31 && t <= 40) {
+          currentSpeedKmh = Math.max(0, 95 - ((t - 30) * 9.5)); // Brake to 0
+        }
+
+        const speedMs = currentSpeedKmh / 3.6;
+        setSpeed(currentSpeedKmh);
+        
+        const mockLoc: any = {
+          timestamp: Date.now(),
+          coords: { speed: speedMs }
+        };
+        
+        engine.processLocationUpdate(mockLoc);
+      }, 1000);
+    } else {
+      await startBackgroundTracking();
+    }
+
     setIsTripActive(true);
     setActive(true);
     setDuration(0);
@@ -88,7 +125,6 @@ export default function DriveScreen() {
   const openNavigationApp = async (app: 'waze' | 'gmaps') => {
     await handleStartTrip();
     
-    // Fallback URL for GMaps if geo:0,0 fails on some iOS devices is the https link
     const wazeUrl = 'waze://';
     const gmapsUrl = 'https://www.google.com/maps/search/?api=1&query=';
     
@@ -109,7 +145,15 @@ export default function DriveScreen() {
   const handleEndTrip = async () => {
     setIsTripActive(false);
     setActive(false);
-    await stopBackgroundTracking();
+    
+    if (simTimerRef.current) {
+      clearInterval(simTimerRef.current);
+      simTimerRef.current = null;
+    }
+    
+    if (!simActive) {
+      await stopBackgroundTracking();
+    }
 
     const report = engine.getTelemetryReport();
     if (report.distanceCityKm === 0 && report.distanceHighwayKm === 0) {
@@ -153,6 +197,16 @@ export default function DriveScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Live Telemetry</Text>
+        <View style={styles.simToggleRow}>
+          <Text style={styles.simToggleText}>Simulate Drive</Text>
+          <Switch 
+            value={simActive} 
+            onValueChange={setSimActive}
+            disabled={active}
+            trackColor={{ true: '#4ade80', false: '#333' }}
+            thumbColor="#fff"
+          />
+        </View>
       </View>
 
       <View style={[styles.gaugeContainer, { borderColor: gaugeColor }]}>
@@ -216,6 +270,20 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     letterSpacing: 1,
+  },
+  simToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    backgroundColor: '#1e1e1e',
+    paddingHorizontal: 15,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  simToggleText: {
+    color: '#9ca3af',
+    marginRight: 10,
+    fontWeight: '600',
   },
   gaugeContainer: {
     width: 280,
