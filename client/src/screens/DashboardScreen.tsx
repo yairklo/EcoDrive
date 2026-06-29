@@ -127,10 +127,11 @@ export default function DashboardScreen() {
 
       {/* Floating Action Button for Start Trip */}
       <TouchableOpacity 
-        style={styles.fab} 
+        style={styles.fabExtended} 
         onPress={() => navigation.navigate('DriveTab')}
       >
-        <Ionicons name="play" size={24} color="#121212" />
+        <Ionicons name="play" size={20} color="#121212" />
+        <Text style={styles.fabExtendedText}>Start Trip</Text>
       </TouchableOpacity>
     </View>
   );
@@ -290,19 +291,25 @@ const styles = StyleSheet.create({
     marginTop: 2,
     maxWidth: '85%',
   },
-  fab: {
+  fabExtended: {
     position: 'absolute',
     bottom: 20,
     right: 20,
     backgroundColor: '#4ade80',
-    width: 60,
-    height: 60,
     borderRadius: 30,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
     shadowColor: '#000',
     shadowOpacity: 0.4,
     shadowRadius: 5,
     shadowOffset: { width: 0, height: 2 },
+  },
+  fabExtendedText: {
+    color: '#121212',
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginLeft: 8,
   },
 });
