@@ -111,13 +111,15 @@ export default function DashboardScreen() {
         </View>
       </ScrollView>
 
-      <TouchableOpacity 
-        style={styles.fab} 
-        onPress={() => navigation.navigate('RefuelLog')}
-      >
-        <Ionicons name="water" size={20} color="#121212" />
-        <Text style={styles.fabText}>Log Refuel</Text>
-      </TouchableOpacity>
+      <View style={styles.stickyFooter}>
+        <TouchableOpacity 
+          style={styles.fullWidthBtn} 
+          onPress={() => navigation.navigate('RefuelLog')}
+        >
+          <Ionicons name="gas-station-outline" size={24} color="#121212" />
+          <Text style={styles.fullWidthBtnText}>Update Fuel & Odometer</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -250,25 +252,29 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 14,
   },
-  fab: {
-    position: 'absolute',
-    bottom: 20,
-    right: 20,
+  stickyFooter: {
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: '#121212',
+    borderTopWidth: 1,
+    borderTopColor: '#333',
+  },
+  fullWidthBtn: {
     backgroundColor: '#4ade80',
-    borderRadius: 30,
+    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    justifyContent: 'center',
+    paddingVertical: 15,
     shadowColor: '#000',
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.2,
     shadowRadius: 5,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: -2 },
   },
-  fabText: {
+  fullWidthBtnText: {
     color: '#121212',
     fontWeight: 'bold',
     fontSize: 16,
-    marginLeft: 8,
+    marginLeft: 10,
   },
 });
