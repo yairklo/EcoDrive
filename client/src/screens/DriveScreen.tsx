@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, Switch, TextInput, Keyboard, ActivityIndicator, DeviceEventEmitter } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, Switch, TextInput, Keyboard, ActivityIndicator, DeviceEventEmitter, AppState } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -56,6 +56,20 @@ export default function DriveScreen() {
   const metricsRef = useRef<NodeJS.Timeout | null>(null);
   const simTimerRef = useRef<NodeJS.Timeout | null>(null);
   const simTickRef = useRef(0);
+  const tripStartTimeRef = useRef<number | null>(null);
+
+  // Absolute Timestamp Delta Sync on Foreground
+  useEffect(() => {
+    const appStateSub = AppState.addEventListener('change', nextAppState => {
+      if (nextAppState === 'active' && active && tripStartTimeRef.current) {
+        const realElapsedTimeSeconds = Math.floor((Date.now() - tripStartTimeRef.current) / 1000);
+        setDuration(realElapsedTimeSeconds);
+      }
+    });
+    return () => {
+      appStateSub.remove();
+    };
+  }, [active]);
 
   // Initialize Map Location & Event Listeners
   useEffect(() => {
@@ -111,11 +125,11 @@ export default function DriveScreen() {
 
   useEffect(() => {
     if (active) {
-      timerRef.current = setInterval(() => {
-        setDuration(d => d + 1);
-      }, 1000);
-
       metricsRef.current = setInterval(() => {
+        if (tripStartTimeRef.current) {
+          const realElapsedTimeSeconds = Math.floor((Date.now() - tripStartTimeRef.current) / 1000);
+          setDuration(realElapsedTimeSeconds);
+        }
         const report = engine.getTelemetryReport();
         const drivenDist = report.distanceCityKm + report.distanceHighwayKm;
         setDistance(drivenDist);
@@ -160,12 +174,10 @@ export default function DriveScreen() {
 
       }, 1000);
     } else {
-      if (timerRef.current) clearInterval(timerRef.current);
       if (metricsRef.current) clearInterval(metricsRef.current);
     }
 
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
       if (metricsRef.current) clearInterval(metricsRef.current);
     };
   }, [active, totalEstimatedDist]);
@@ -260,6 +272,7 @@ export default function DriveScreen() {
 
     setIsTripActive(true);
     setActive(true);
+    tripStartTimeRef.current = Date.now();
     setDuration(0);
     setDistance(0);
     setInsights(null);
@@ -285,6 +298,7 @@ export default function DriveScreen() {
   const handleEndTrip = async () => {
     setIsTripActive(false);
     setActive(false);
+    tripStartTimeRef.current = null;
     
     if (simTimerRef.current) {
       clearInterval(simTimerRef.current);
