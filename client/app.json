@@ -20,7 +20,7 @@
       "package": "com.yairklo.client",
       "config": {
         "googleMaps": {
-          "apiKey": "AIzaSy_LOCAL_DEV_MAPS_KEY_PLACEHOLDER"
+          "apiKey": "AIzaSyCGCbu8WV8KpU4m25b4vJN9YFnQwfiWalQ"
         }
       },
       "permissions": [

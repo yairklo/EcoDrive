@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, Switch, TextInput, Keyboard, ActivityIndicator, DeviceEventEmitter, AppState } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -353,6 +353,7 @@ export default function DriveScreen() {
         ) : (
           <MapView
             ref={mapRef}
+            provider={PROVIDER_GOOGLE}
             style={StyleSheet.absoluteFillObject}
             customMapStyle={darkMapStyle}
             showsUserLocation={true}
