@@ -86,7 +86,7 @@ export class OSRMService {
 
     // Prepare Fallback Default
     const fallbackDefault: OSRMOutput = {
-      osmWayId: 0,
+      osmWayId: Math.floor(Math.random() * 1000000) + 9000000,
       roadClassification: 'Urban',
       extractedSpeedLimit: 50,
       confidenceScore: 0.1
@@ -94,7 +94,8 @@ export class OSRMService {
 
     try {
       // 3. API Request Construction
-      const url = `${OSRM_BASE_URL}/nearest/v1/driving/${input.longitude},${input.latitude}?number=1&bearings=${Math.round(input.bearing)},15&annotations=speed`;
+      // Note: public OSRM /nearest API does not support annotations=speed on standard driving profile
+      const url = `${OSRM_BASE_URL}/nearest/v1/driving/${input.longitude},${input.latitude}?number=1&bearings=${Math.round(input.bearing)},15`;
       
       const response = await axios.get(url, { timeout: 1500 });
       

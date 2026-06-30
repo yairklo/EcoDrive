@@ -16,7 +16,6 @@ const NativeOverlay = SystemOverlay || {
 };
 
 export class OverlayManagerService {
-  private currentTimer: NodeJS.Timeout | null = null;
   private isInitialized: boolean = false;
 
   /**
@@ -54,17 +53,7 @@ export class OverlayManagerService {
     }
   }
 
-  /**
-   * Race-condition guarded native bridge executor for dynamic alerts.
-   */
   private handleUrbanAlert(data: { timestamp: number, severity: 'medium' | 'high' }) {
-    // Overlap Guard: If an alert is already actively displayed, we cancel its pending dismiss.
-    // This allows back-to-back alerts to seamlessly update the pill without it disappearing and flickering.
-    if (this.currentTimer) {
-      clearTimeout(this.currentTimer);
-      this.currentTimer = null;
-    }
-
     // Design Constraint: Minimalist 2-word Macros & Dynamic Hex mapping.
     // (Never pass numeric speed digits to this bridge).
     let title = '';
@@ -78,22 +67,23 @@ export class OverlayManagerService {
       colorHex = '#f59e0b'; // Soft pulsing amber
     }
 
-    // Execute Native Bridge
+    this.showOverlay(title, colorHex);
+  }
+
+  public showOverlay(title: string, colorHex: string) {
     try {
       NativeOverlay.showOverlay(title, colorHex);
     } catch (e) {
       console.error('Failed to trigger native SystemOverlay', e);
     }
+  }
 
-    // Lifecycle: Exact 4-second visibility
-    this.currentTimer = setTimeout(() => {
-      try {
-        NativeOverlay.hideOverlay();
-      } catch (e) {
-        console.error('Failed to dismiss native SystemOverlay', e);
-      }
-      this.currentTimer = null;
-    }, 4000);
+  public hideOverlay() {
+    try {
+      NativeOverlay.hideOverlay();
+    } catch (e) {
+      console.error('Failed to hide native SystemOverlay', e);
+    }
   }
 }
 

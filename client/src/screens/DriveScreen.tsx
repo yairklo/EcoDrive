@@ -222,12 +222,12 @@ export default function DriveScreen() {
         let currentSpeedKmh = 0;
 
         if (t <= 5) {
-          // Phase 1: Aggressive Urban Acceleration (>2.5 m/s2)
-          // 0 to 55 km/h in 5 seconds (11 km/h per sec = ~3.05 m/s2)
-          currentSpeedKmh = t * 11; 
+          // Stabilization
+          currentSpeedKmh = 20; 
         } else if (t > 5 && t <= 10) {
-          // Coasting at 55 km/h to allow the 4-second buffer to trigger the Urban Alert
-          currentSpeedKmh = 55;
+          // Phase 1: FORCE SEVERE VIOLATION TEST
+          // Accelerate at exactly 12.6 km/h per sec (3.5 m/s2) for 5 seconds
+          currentSpeedKmh = 20 + ((t - 5) * 12.6);
         } else if (t >= 11 && t <= 20) {
           // Phase 2: Highway transition
           currentSpeedKmh = 95; 
@@ -272,7 +272,10 @@ export default function DriveScreen() {
       const url = app === 'waze' ? wazeUrl : gmapsUrl;
       try {
         const supported = await Linking.canOpenURL(url);
-        if (supported) await Linking.openURL(url);
+        if (supported) {
+          overlayManager.showOverlay('תקין', '#4ade80');
+          await Linking.openURL(url);
+        }
       } catch (e) {
         Alert.alert('App Not Installed', `Could not open ${app}.`);
       }
@@ -291,6 +294,8 @@ export default function DriveScreen() {
     if (!simActive) {
       await stopBackgroundTracking();
     }
+    
+    overlayManager.hideOverlay();
 
     const report = engine.getTelemetryReport();
     if (report.distanceCityKm === 0 && report.distanceHighwayKm === 0) {
