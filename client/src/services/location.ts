@@ -47,41 +47,56 @@ export async function processSingleLocation(loc: any) {
   const now = loc.timestamp;
   
   if (isTripActive) {
-    // 1. Fetch OSRM Road Metadata
+    let roadData: any = {
+      osmWayId: Math.floor(Math.random() * 1000000),
+      roadClassification: 'Urban',
+      extractedSpeedLimit: 50
+    };
+
+    // 1. Fetch OSRM Road Metadata (Safeguarded against network hang)
     const bearing = loc.coords.heading || 0;
-    const roadData = await OSRMService.getRoadAttributes({
-      latitude: loc.coords.latitude,
-      longitude: loc.coords.longitude,
-      bearing
-    });
+    try {
+      roadData = await OSRMService.getRoadAttributes({
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+        bearing
+      });
+    } catch (e) {
+      console.warn('OSRM request hard-failed, using local mock to unblock background loop');
+    }
 
     silentUrbanProfile = roadData.roadClassification === 'Urban';
 
     // 2. Process Telemetry
-    const result = engine.processLocationUpdate(loc);
-    
-    if (result) {
-      rollingBuffer.push({
-        timestamp: now,
-        speed: speedKmh,
-        acceleration: result.currentAcceleration
-      });
+    let result: any = null;
+    try {
+      result = engine.processLocationUpdate(loc);
       
-      // Calculate Fuel Engine Tick
-      const tickData = fuelEngine.calculateTickConsumption({
-        speed_kmh: speedKmh,
-        acceleration_mss: result.currentAcceleration,
-        road_type: roadData.roadClassification
-      });
+      if (result) {
+        rollingBuffer.push({
+          timestamp: now,
+          speed: speedKmh,
+          acceleration: result.currentAcceleration
+        });
+        
+        // Calculate Fuel Engine Tick
+        const tickData = fuelEngine.calculateTickConsumption({
+          speed_kmh: speedKmh,
+          acceleration_mss: result.currentAcceleration,
+          road_type: roadData.roadClassification
+        });
 
-      // Update Local Physics Weights
-      fuelEngine.updateRoadWeights(
-        roadData.osmWayId, 
-        bearing, 
-        tickData.total_ml, 
-        tickData.is_accel_waste,
-        speedKmh
-      );
+        // Update Local Physics Weights
+        fuelEngine.updateRoadWeights(
+          roadData.osmWayId, 
+          bearing, 
+          tickData.total_ml, 
+          tickData.is_accel_waste,
+          speedKmh
+        );
+      }
+    } catch (e) {
+      console.warn('Local telemetry processing fault', e);
     }
 
     // Evict old data (> 10s old)
@@ -158,33 +173,37 @@ export async function processSingleLocation(loc: any) {
     if (silentUrbanProfile && speedKmh >= 50 && speedKmh <= 60) {
       // Handled by URBAN_ALERT_TRIGGERED
     } else {
-      if (currentTier === 'red' || currentTier === 'orange') {
-        const targetInsights = engine.getAerodynamicPrediction(speedKmh);
-        // Approx time penalty overhead calculation
-        const safeSpeed = 90;
-        // Mock remaining dist for overlay if DriveScreen isn't passing it (assumes ~15km remaining on average for impact projection)
-        const mockRemaining = 15;
-        const timeAtSafe = mockRemaining / safeSpeed;
-        const timeAtCurrent = mockRemaining / speedKmh;
-        const timeAddedMins = Math.round((timeAtSafe - timeAtCurrent) * 60);
+      try {
+        if (currentTier === 'red' || currentTier === 'orange') {
+          const targetInsights = engine.getAerodynamicPrediction(speedKmh);
+          // Approx time penalty overhead calculation
+          const safeSpeed = 90;
+          // Mock remaining dist for overlay if DriveScreen isn't passing it (assumes ~15km remaining on average for impact projection)
+          const mockRemaining = 15;
+          const timeAtSafe = mockRemaining / safeSpeed;
+          const timeAtCurrent = mockRemaining / speedKmh;
+          const timeAddedMins = Math.round((timeAtSafe - timeAtCurrent) * 60);
 
-        overlayManager.updateOverlayData({
-          state: 'C',
-          colorHex: currentTier === 'red' ? '#dc2626' : '#f97316',
-          speedDelta: `- ${Math.floor(speedKmh - safeSpeed)} km/h`,
-          timePenalty: `Adds +${timeAddedMins} mins`,
-          savings: `Saves ₪${targetInsights?.moneySavedPerHour || '0'} / ${targetInsights?.savedLitersPer100km || '0'}L`
-        });
-      } else if (currentTier === 'yellow') {
-        overlayManager.updateOverlayData({
-          state: 'B',
-          colorHex: '#eab308'
-        });
-      } else {
-        overlayManager.updateOverlayData({
-          state: 'A',
-          colorHex: '#4ade80'
-        });
+          overlayManager.updateOverlayData({
+            state: 'C',
+            colorHex: currentTier === 'red' ? '#dc2626' : '#f97316',
+            speedDelta: `- ${Math.floor(speedKmh - safeSpeed)} km/h`,
+            timePenalty: `Adds +${timeAddedMins} mins`,
+            savings: `Saves ₪${targetInsights?.moneySavedPerHour || '0'} / ${targetInsights?.savedLitersPer100km || '0'}L`
+          });
+        } else if (currentTier === 'yellow') {
+          overlayManager.updateOverlayData({
+            state: 'B',
+            colorHex: '#eab308'
+          });
+        } else {
+          overlayManager.updateOverlayData({
+            state: 'A',
+            colorHex: '#4ade80'
+          });
+        }
+      } catch (e) {
+        console.warn('Native Bridge Update Fault', e);
       }
     }
 

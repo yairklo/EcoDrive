@@ -207,7 +207,9 @@ public class SystemOverlayModule extends ReactContextBaseJavaModule {
                 if ("A".equals(state)) {
                     shape.setShape(GradientDrawable.OVAL);
                     shape.setColor(Color.TRANSPARENT);
-                    shape.setStroke(8, Color.parseColor(colorHex));
+                    // 4dp green border stroke
+                    int strokeWidth = (int) (4 * appContext.getResources().getDisplayMetrics().density);
+                    shape.setStroke(strokeWidth, Color.parseColor(colorHex));
                     overlayView.setBackground(shape);
                     overlayView.setPadding(40, 40, 40, 40);
                     

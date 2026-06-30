@@ -74,17 +74,29 @@ export default function DriveScreen() {
 
   // Initialize Map Location & Event Listeners
   useEffect(() => {
+    // 1. Overlay Init - Fire immediately, completely decoupled from network or location
     (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') return;
-      let location = await Location.getCurrentPositionAsync({});
-      setCurrentCoords(location.coords);
+      try {
+        overlayManager.init();
+        const hasOverlayPerm = await overlayManager.checkPermissions();
+        if (!hasOverlayPerm && Platform.OS === 'android') {
+          await overlayManager.requestPermissions();
+        }
+      } catch (e) {
+        console.warn('Overlay Init Non-Blocking Error', e);
+      }
+    })();
 
-      // Initialize System Overlay
-      overlayManager.init();
-      const hasOverlayPerm = await overlayManager.checkPermissions();
-      if (!hasOverlayPerm && Platform.OS === 'android') {
-        await overlayManager.requestPermissions();
+    // 2. Location Fetch - Allowed to hang/fail without blocking UI
+    (async () => {
+      try {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          let location = await Location.getCurrentPositionAsync({});
+          setCurrentCoords(location.coords);
+        }
+      } catch (e) {
+        console.warn('Location Fetch Non-Blocking Error', e);
       }
     })();
 
