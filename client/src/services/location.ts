@@ -16,8 +16,13 @@ export function setVehiclePhysics(massKg: number, efficiency: number) {
 }
 
 export let isTripActive = false;
+export let simActiveFlag = false;
 let silentUrbanProfile = false;
 const rollingBuffer: { timestamp: number; speed: number; acceleration: number }[] = [];
+
+export function setSimActiveFlag(active: boolean) {
+  simActiveFlag = active;
+}
 
 export function setIsTripActive(active: boolean) {
   isTripActive = active;
@@ -221,6 +226,8 @@ export async function processSingleLocation(loc: any) {
   }
 }
 
+let simTick = 0;
+
 // The callback for the background task
 TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
   if (error) {
@@ -230,9 +237,37 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
   if (data) {
     const { locations } = data as any;
     
-    // Process locations sequentially to ensure OSRM caches correctly
-    for (const loc of locations) {
-      await processSingleLocation(loc);
+    if (isTripActive && simActiveFlag) {
+      // Pipe simulation directly through the guaranteed background task
+      simTick += 1;
+      let currentSpeedKmh = 0;
+      if (simTick <= 5) {
+        currentSpeedKmh = 20; 
+      } else if (simTick > 5 && simTick <= 10) {
+        currentSpeedKmh = 20 + ((simTick - 5) * 12.6);
+      } else if (simTick >= 11 && simTick <= 20) {
+        currentSpeedKmh = 95; 
+      } else if (simTick >= 21 && simTick <= 30) {
+        currentSpeedKmh = 110; 
+      } else if (simTick >= 31 && simTick <= 40) {
+        currentSpeedKmh = Math.max(0, 110 - ((simTick - 30) * 11)); 
+      }
+      
+      const mockLoc: any = {
+        timestamp: Date.now(),
+        coords: { 
+          speed: currentSpeedKmh / 3.6,
+          latitude: 32.0853,
+          longitude: 34.7818,
+          heading: 90
+        }
+      };
+      await processSingleLocation(mockLoc);
+    } else {
+      // Process locations sequentially to ensure OSRM caches correctly
+      for (const loc of locations) {
+        await processSingleLocation(loc);
+      }
     }
 
     if (isTripActive) {
@@ -261,8 +296,9 @@ export async function startBackgroundTracking() {
   if (!isRegistered) {
     await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
       accuracy: Location.Accuracy.High,
-      distanceInterval: 10,
-      deferredUpdatesInterval: 5000,
+      distanceInterval: simActiveFlag ? 0 : 10,
+      timeInterval: 1000,
+      deferredUpdatesInterval: 1000,
       foregroundService: {
         notificationTitle: 'EcoDrive Active',
         notificationBody: 'Calculating rolling trip efficiency...',

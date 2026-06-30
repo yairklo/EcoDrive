@@ -12,7 +12,8 @@ import {
   isTripActive,
   startBackgroundTracking, 
   stopBackgroundTracking,
-  processSingleLocation
+  processSingleLocation,
+  setSimActiveFlag
 } from '../services/location';
 import { outbox } from '../services/outbox';
 import { addTripToHistory } from '../services/analytics';
@@ -82,7 +83,7 @@ export default function DriveScreen() {
       // Initialize System Overlay
       overlayManager.init();
       const hasOverlayPerm = await overlayManager.checkPermissions();
-      if (!hasOverlayPerm) {
+      if (!hasOverlayPerm && Platform.OS === 'android') {
         await overlayManager.requestPermissions();
       }
     })();
@@ -125,6 +126,9 @@ export default function DriveScreen() {
 
   useEffect(() => {
     if (active) {
+      // 3. Support Multi-Trip Overlay Lifecycle
+      overlayManager.updateOverlayData({ state: 'A', colorHex: '#4ade80' });
+      
       metricsRef.current = setInterval(() => {
         if (tripStartTimeRef.current) {
           const realElapsedTimeSeconds = Math.floor((Date.now() - tripStartTimeRef.current) / 1000);
@@ -226,49 +230,8 @@ export default function DriveScreen() {
   };
 
   const handleStartTrip = async (app?: 'waze' | 'gmaps') => {
-    if (simActive) {
-      simTickRef.current = 0;
-      simTimerRef.current = setInterval(() => {
-        simTickRef.current += 1;
-        const t = simTickRef.current;
-        let currentSpeedKmh = 0;
-
-        if (t <= 5) {
-          // Stabilization
-          currentSpeedKmh = 20; 
-        } else if (t > 5 && t <= 10) {
-          // Phase 1: FORCE SEVERE VIOLATION TEST
-          // Accelerate at exactly 12.6 km/h per sec (3.5 m/s2) for 5 seconds
-          currentSpeedKmh = 20 + ((t - 5) * 12.6);
-        } else if (t >= 11 && t <= 20) {
-          // Phase 2: Highway transition
-          currentSpeedKmh = 95; 
-        } else if (t >= 21 && t <= 30) {
-          // Phase 3: Highway speeding
-          currentSpeedKmh = 110; 
-        } else if (t >= 31 && t <= 40) {
-          // Phase 4: Deceleration
-          currentSpeedKmh = Math.max(0, 110 - ((t - 30) * 11)); 
-        }
-
-        const speedMs = currentSpeedKmh / 3.6;
-        setSpeed(currentSpeedKmh);
-        
-        const mockLoc: any = {
-          timestamp: Date.now(),
-          coords: { 
-            speed: speedMs,
-            latitude: currentCoords?.latitude || 32.0853,
-            longitude: currentCoords?.longitude || 34.7818,
-            heading: 90
-          }
-        };
-        
-        processSingleLocation(mockLoc);
-      }, 1000);
-    } else {
-      await startBackgroundTracking();
-    }
+    setSimActiveFlag(simActive);
+    await startBackgroundTracking();
 
     setIsTripActive(true);
     setActive(true);
@@ -286,7 +249,6 @@ export default function DriveScreen() {
       try {
         const supported = await Linking.canOpenURL(url);
         if (supported) {
-          overlayManager.updateOverlayData({ state: 'A', colorHex: '#4ade80' });
           await Linking.openURL(url);
         }
       } catch (e) {

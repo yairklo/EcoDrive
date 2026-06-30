@@ -111,8 +111,16 @@ public class SystemOverlayModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void requestOverlayPermission(Promise promise) {
-        // Just return false for this mock, in a real scenario we'd fire an Intent to ACTION_MANAGE_OVERLAY_PERMISSION
-        promise.resolve(false); 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            android.content.Intent intent = new android.content.Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    android.net.Uri.parse("package:" + getReactApplicationContext().getPackageName()));
+            intent.setFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+            getReactApplicationContext().startActivity(intent);
+            promise.resolve(true);
+        } else {
+            promise.resolve(true);
+        }
     }
 
     @ReactMethod
