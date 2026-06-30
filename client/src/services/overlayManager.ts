@@ -1,19 +1,23 @@
-import { NativeModules, DeviceEventEmitter } from 'react-native';
+import { NativeModules, DeviceEventEmitter, Platform } from 'react-native';
 
 const { SystemOverlay } = NativeModules;
 
-// Safety fallback for development environments where the Native Module isn't compiled yet.
-// Maps to the exact Config Plugin interface expected by the native bridge.
-const NativeOverlay = SystemOverlay || {
-  checkOverlayPermission: async () => false,
-  requestOverlayPermission: async () => false,
-  showOverlay: (title: string, colorHex: string) => {
-    console.warn(`[NativeBridge Mock] showOverlay called with: ${title} / ${colorHex}`);
-  },
-  hideOverlay: () => {
-    console.warn(`[NativeBridge Mock] hideOverlay called`);
+let NativeOverlay: any;
+
+if (Platform.OS === 'android') {
+  if (!SystemOverlay) {
+    throw new Error("SystemOverlay NativeModule is missing or unregistered in Android! Ensure it is properly linked via the Config Plugin.");
   }
-};
+  NativeOverlay = SystemOverlay;
+} else {
+  // Safe mock for iOS/Web if needed
+  NativeOverlay = {
+    checkOverlayPermission: async () => false,
+    requestOverlayPermission: async () => false,
+    showOverlay: (title: string, colorHex: string) => {},
+    hideOverlay: () => {}
+  };
+}
 
 export class OverlayManagerService {
   private isInitialized: boolean = false;
