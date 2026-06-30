@@ -112,11 +112,13 @@ public class SystemOverlayModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void requestOverlayPermission(Promise promise) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            android.content.Intent intent = new android.content.Intent(
-                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    android.net.Uri.parse("package:" + getReactApplicationContext().getPackageName()));
-            intent.setFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
-            getReactApplicationContext().startActivity(intent);
+            if (!Settings.canDrawOverlays(getReactApplicationContext())) {
+                android.content.Intent intent = new android.content.Intent(
+                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        android.net.Uri.parse("package:" + getReactApplicationContext().getPackageName()));
+                intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+                getReactApplicationContext().startActivity(intent);
+            }
             promise.resolve(true);
         } else {
             promise.resolve(true);

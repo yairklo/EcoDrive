@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, Switch, TextInput, Keyboard, ActivityIndicator, DeviceEventEmitter, AppState } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
+import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -58,6 +59,10 @@ export default function DriveScreen() {
   const simTimerRef = useRef<NodeJS.Timeout | null>(null);
   const simTickRef = useRef(0);
   const tripStartTimeRef = useRef<number | null>(null);
+
+  // Check Map API Key Configuration
+  const mapApiKey = Constants.expoConfig?.android?.config?.googleMaps?.apiKey;
+  const isMissingMapKey = !mapApiKey || mapApiKey === 'AIzaSy_LOCAL_DEV_MAPS_KEY_PLACEHOLDER';
 
   // Absolute Timestamp Delta Sync on Foreground
   useEffect(() => {
@@ -337,20 +342,30 @@ export default function DriveScreen() {
 
       {/* MAP SECTION (Top Half) */}
       <View style={styles.mapContainer}>
-        <MapView
-          ref={mapRef}
-          style={StyleSheet.absoluteFillObject}
-          customMapStyle={darkMapStyle}
-          showsUserLocation={true}
-          initialRegion={{
-            latitude: currentCoords?.latitude || 32.0853,
-            longitude: currentCoords?.longitude || 34.7818,
-            latitudeDelta: 0.05,
-            longitudeDelta: 0.05,
-          }}
-        >
-          {targetCoords && <Marker coordinate={targetCoords} pinColor="#4ade80" />}
-        </MapView>
+        {isMissingMapKey ? (
+           <View style={[StyleSheet.absoluteFillObject, { backgroundColor: '#242f3e', justifyContent: 'center', alignItems: 'center' }]}>
+             <Ionicons name="map-outline" size={64} color="#888" />
+             <Text style={{ color: '#fff', fontSize: 16, marginTop: 10, fontWeight: 'bold' }}>Google Maps SDK Unconfigured</Text>
+             <Text style={{ color: '#aaa', fontSize: 12, marginTop: 8, textAlign: 'center', paddingHorizontal: 40, lineHeight: 18 }}>
+               Your app.json is missing a valid Android Google Maps API Key. Please replace "AIzaSy_LOCAL_DEV_MAPS_KEY_PLACEHOLDER" with a valid key.
+             </Text>
+           </View>
+        ) : (
+          <MapView
+            ref={mapRef}
+            style={StyleSheet.absoluteFillObject}
+            customMapStyle={darkMapStyle}
+            showsUserLocation={true}
+            initialRegion={{
+              latitude: currentCoords?.latitude || 32.0853,
+              longitude: currentCoords?.longitude || 34.7818,
+              latitudeDelta: 0.05,
+              longitudeDelta: 0.05,
+            }}
+          >
+            {targetCoords && <Marker coordinate={targetCoords} pinColor="#4ade80" />}
+          </MapView>
+        )}
         
         {/* Search Overlay */}
         {!active && (
