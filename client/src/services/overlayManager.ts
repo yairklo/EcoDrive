@@ -14,7 +14,7 @@ if (Platform.OS === 'android') {
   NativeOverlay = {
     checkOverlayPermission: async () => false,
     requestOverlayPermission: async () => false,
-    showOverlay: (title: string, colorHex: string) => {},
+    updateOverlayData: (data: any) => {},
     hideOverlay: () => {}
   };
 }
@@ -71,19 +71,15 @@ export class OverlayManagerService {
       colorHex = '#f59e0b'; // Soft pulsing amber
     }
 
-    this.showOverlay(title, colorHex);
+    this.updateOverlayData({ state: 'B', colorHex });
   }
 
-  public showOverlay(title: string, colorHex: string) {
+  public updateOverlayData(data: { state: 'A'|'B'|'C', colorHex?: string, speedDelta?: string, timePenalty?: string, savings?: string }) {
     try {
-      NativeOverlay.showOverlay(title, colorHex);
+      NativeOverlay.updateOverlayData(data);
     } catch (e) {
-      console.error('Failed to trigger native SystemOverlay', e);
+      console.error('Failed to update native SystemOverlay', e);
     }
-  }
-
-  public updateOverlayData(title: string, colorHex: string) {
-    this.showOverlay(title, colorHex);
   }
 
   public hideOverlay() {

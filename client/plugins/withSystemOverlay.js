@@ -82,11 +82,14 @@ import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.bridge.ReadableMap;
 
 public class SystemOverlayModule extends ReactContextBaseJavaModule {
     private WindowManager windowManager;
     private View overlayView;
     private TextView titleView;
+    private TextView line2View;
+    private TextView line3View;
 
     public SystemOverlayModule(ReactApplicationContext reactContext) {
         super(reactContext);
@@ -113,7 +116,7 @@ public class SystemOverlayModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void showOverlay(String title, String colorHex) {
+    public void updateOverlayData(ReadableMap data) {
         new Handler(Looper.getMainLooper()).post(() -> {
             try {
                 Context appContext = getReactApplicationContext().getApplicationContext();
@@ -122,23 +125,31 @@ public class SystemOverlayModule extends ReactContextBaseJavaModule {
                 }
 
                 if (overlayView == null) {
-                    overlayView = new TextView(appContext);
-                    titleView = (TextView) overlayView;
-                    titleView.setTextSize(18);
+                    android.widget.LinearLayout layout = new android.widget.LinearLayout(appContext);
+                    layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+                    layout.setGravity(Gravity.CENTER);
+                    overlayView = layout;
+
+                    titleView = new TextView(appContext);
+                    titleView.setTextSize(16);
                     titleView.setTextColor(Color.WHITE);
                     titleView.setGravity(Gravity.CENTER);
-                    titleView.setPadding(60, 30, 60, 30);
-                }
+                    titleView.setTypeface(null, android.graphics.Typeface.BOLD);
 
-                titleView.setText(title);
+                    line2View = new TextView(appContext);
+                    line2View.setTextSize(14);
+                    line2View.setTextColor(Color.WHITE);
+                    line2View.setGravity(Gravity.CENTER);
 
-                GradientDrawable shape = new GradientDrawable();
-                shape.setShape(GradientDrawable.RECTANGLE);
-                shape.setCornerRadius(90);
-                shape.setColor(Color.parseColor(colorHex));
-                titleView.setBackground(shape);
+                    line3View = new TextView(appContext);
+                    line3View.setTextSize(14);
+                    line3View.setTextColor(Color.WHITE);
+                    line3View.setGravity(Gravity.CENTER);
 
-                if (overlayView.getWindowToken() == null) {
+                    layout.addView(titleView);
+                    layout.addView(line2View);
+                    layout.addView(line3View);
+
                     WindowManager.LayoutParams params = new WindowManager.LayoutParams(
                             WindowManager.LayoutParams.WRAP_CONTENT,
                             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -179,6 +190,47 @@ public class SystemOverlayModule extends ReactContextBaseJavaModule {
 
                     windowManager.addView(overlayView, params);
                 }
+
+                String state = data.hasKey("state") ? data.getString("state") : "A";
+                String colorHex = data.hasKey("colorHex") ? data.getString("colorHex") : "#4ade80";
+
+                GradientDrawable shape = new GradientDrawable();
+                
+                if ("A".equals(state)) {
+                    shape.setShape(GradientDrawable.OVAL);
+                    shape.setColor(Color.TRANSPARENT);
+                    shape.setStroke(8, Color.parseColor(colorHex));
+                    overlayView.setBackground(shape);
+                    overlayView.setPadding(40, 40, 40, 40);
+                    
+                    titleView.setVisibility(View.GONE);
+                    line2View.setVisibility(View.GONE);
+                    line3View.setVisibility(View.GONE);
+                } else if ("B".equals(state)) {
+                    shape.setShape(GradientDrawable.OVAL);
+                    shape.setColor(Color.parseColor(colorHex));
+                    overlayView.setBackground(shape);
+                    overlayView.setPadding(40, 40, 40, 40);
+                    
+                    titleView.setVisibility(View.GONE);
+                    line2View.setVisibility(View.GONE);
+                    line3View.setVisibility(View.GONE);
+                } else {
+                    shape.setShape(GradientDrawable.RECTANGLE);
+                    shape.setCornerRadius(30);
+                    shape.setColor(Color.parseColor(colorHex));
+                    overlayView.setBackground(shape);
+                    overlayView.setPadding(50, 30, 50, 30);
+                    
+                    titleView.setVisibility(View.VISIBLE);
+                    line2View.setVisibility(View.VISIBLE);
+                    line3View.setVisibility(View.VISIBLE);
+                    
+                    titleView.setText((data.hasKey("speedDelta") ? data.getString("speedDelta") : ""));
+                    line2View.setText((data.hasKey("timePenalty") ? data.getString("timePenalty") : ""));
+                    line3View.setText((data.hasKey("savings") ? data.getString("savings") : ""));
+                }
+
             } catch (Exception e) {
                 e.printStackTrace();
             }

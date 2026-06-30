@@ -149,24 +149,38 @@ export async function processSingleLocation(loc: any) {
     }
     lastTier = currentTier;
 
-    // Fluidly update the background persistent overlay with a fallback logic
-    // so it doesn't stay stuck on "תקין" if we missed an event, while obeying the no-number constraint.
+    // Fluidly update the background persistent overlay with new product requirements
     if (silentUrbanProfile && speedKmh >= 50 && speedKmh <= 60) {
-      // Do nothing, the URBAN_ALERT_TRIGGERED will handle severe rendering
+      // Handled by URBAN_ALERT_TRIGGERED
     } else {
-      let overlayTitle = 'תקין';
-      let overlayColor = '#4ade80';
-      if (currentTier === 'red') {
-        overlayTitle = 'למתן מהירות';
-        overlayColor = '#dc2626';
-      } else if (currentTier === 'orange') {
-        overlayTitle = 'האצה קלה';
-        overlayColor = '#f97316';
+      if (currentTier === 'red' || currentTier === 'orange') {
+        const targetInsights = engine.getAerodynamicPrediction(speedKmh);
+        // Approx time penalty overhead calculation
+        const safeSpeed = 90;
+        // Mock remaining dist for overlay if DriveScreen isn't passing it (assumes ~15km remaining on average for impact projection)
+        const mockRemaining = 15;
+        const timeAtSafe = mockRemaining / safeSpeed;
+        const timeAtCurrent = mockRemaining / speedKmh;
+        const timeAddedMins = Math.round((timeAtSafe - timeAtCurrent) * 60);
+
+        overlayManager.updateOverlayData({
+          state: 'C',
+          colorHex: currentTier === 'red' ? '#dc2626' : '#f97316',
+          speedDelta: `- ${Math.floor(speedKmh - safeSpeed)} km/h`,
+          timePenalty: `Adds +${timeAddedMins} mins`,
+          savings: `Saves ₪${targetInsights?.moneySavedPerHour || '0'} / ${targetInsights?.savedLitersPer100km || '0'}L`
+        });
       } else if (currentTier === 'yellow') {
-        overlayTitle = 'זהירות';
-        overlayColor = '#eab308';
+        overlayManager.updateOverlayData({
+          state: 'B',
+          colorHex: '#eab308'
+        });
+      } else {
+        overlayManager.updateOverlayData({
+          state: 'A',
+          colorHex: '#4ade80'
+        });
       }
-      overlayManager.updateOverlayData(overlayTitle, overlayColor);
     }
 
   } else {

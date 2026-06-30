@@ -94,10 +94,9 @@ export class OSRMService {
 
     try {
       // 3. API Request Construction
-      // Note: public OSRM /nearest API does not support annotations=speed on standard driving profile
       const url = `${OSRM_BASE_URL}/nearest/v1/driving/${input.longitude},${input.latitude}?number=1&bearings=${Math.round(input.bearing)},15`;
       
-      const response = await axios.get(url, { timeout: 1500 });
+      const response = await axios.get(url, { timeout: 500 });
       
       if (response.status !== 200 || !response.data || response.data.code !== 'Ok') {
         return localCache?.data || fallbackDefault;
@@ -158,10 +157,12 @@ export class OSRMService {
 
       return output;
 
-    } catch (error) {
+    } catch (error: any) {
       // 5. Error Handling & Resiliency
-      // Return last known valid state or safe default without throwing
-      console.warn('OSRM API Error, using fallback:', error);
+      // Fast fallback to simulated data without stalling the UI pipeline on Network Errors
+      if (!error.isAxiosError) {
+        console.warn('OSRM Parsing Error, using fallback:', error.message);
+      }
       return localCache?.data || fallbackDefault;
     }
   }

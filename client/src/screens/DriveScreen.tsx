@@ -286,7 +286,7 @@ export default function DriveScreen() {
       try {
         const supported = await Linking.canOpenURL(url);
         if (supported) {
-          overlayManager.showOverlay('תקין', '#4ade80');
+          overlayManager.updateOverlayData({ state: 'A', colorHex: '#4ade80' });
           await Linking.openURL(url);
         }
       } catch (e) {
