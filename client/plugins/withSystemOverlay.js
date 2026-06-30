@@ -9,6 +9,10 @@ const withSystemOverlay = (config) => {
     if (!androidManifest.manifest['uses-permission']) {
       androidManifest.manifest['uses-permission'] = [];
     }
+    
+    // Add cleartext traffic
+    const application = androidManifest.manifest.application[0];
+    application.$['android:usesCleartextTraffic'] = "true";
     const hasPermission = androidManifest.manifest['uses-permission'].some(
       (p) => p.$['android:name'] === 'android.permission.SYSTEM_ALERT_WINDOW'
     );
@@ -68,6 +72,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
@@ -141,12 +146,37 @@ public class SystemOverlayModule extends ReactContextBaseJavaModule {
                                 ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY 
                                 : WindowManager.LayoutParams.TYPE_PHONE,
                             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE 
-                                    | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
                                     | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
                             PixelFormat.TRANSLUCENT
                     );
                     params.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
                     params.y = 150;
+
+                    overlayView.setOnTouchListener(new View.OnTouchListener() {
+                        private int initialX;
+                        private int initialY;
+                        private float initialTouchX;
+                        private float initialTouchY;
+
+                        @Override
+                        public boolean onTouch(View v, MotionEvent event) {
+                            switch (event.getAction()) {
+                                case MotionEvent.ACTION_DOWN:
+                                    initialX = params.x;
+                                    initialY = params.y;
+                                    initialTouchX = event.getRawX();
+                                    initialTouchY = event.getRawY();
+                                    return true;
+                                case MotionEvent.ACTION_MOVE:
+                                    params.x = initialX + (int) (event.getRawX() - initialTouchX);
+                                    params.y = initialY + (int) (event.getRawY() - initialTouchY);
+                                    windowManager.updateViewLayout(overlayView, params);
+                                    return true;
+                            }
+                            return false;
+                        }
+                    });
+
                     windowManager.addView(overlayView, params);
                 }
             } catch (Exception e) {

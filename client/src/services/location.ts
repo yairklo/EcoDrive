@@ -6,6 +6,7 @@ import { TelemetryEngine } from './telemetry';
 import { audioCoach, getSettings } from './audioCoach';
 import { OSRMService } from './osrm';
 import { fuelEngine } from './fuelEngine';
+import { overlayManager } from './overlayManager';
 
 const LOCATION_TASK_NAME = 'background-location-task';
 export const engine = new TelemetryEngine();
@@ -147,6 +148,26 @@ export async function processSingleLocation(loc: any) {
       }
     }
     lastTier = currentTier;
+
+    // Fluidly update the background persistent overlay with a fallback logic
+    // so it doesn't stay stuck on "תקין" if we missed an event, while obeying the no-number constraint.
+    if (silentUrbanProfile && speedKmh >= 50 && speedKmh <= 60) {
+      // Do nothing, the URBAN_ALERT_TRIGGERED will handle severe rendering
+    } else {
+      let overlayTitle = 'תקין';
+      let overlayColor = '#4ade80';
+      if (currentTier === 'red') {
+        overlayTitle = 'למתן מהירות';
+        overlayColor = '#dc2626';
+      } else if (currentTier === 'orange') {
+        overlayTitle = 'האצה קלה';
+        overlayColor = '#f97316';
+      } else if (currentTier === 'yellow') {
+        overlayTitle = 'זהירות';
+        overlayColor = '#eab308';
+      }
+      overlayManager.updateOverlayData(overlayTitle, overlayColor);
+    }
 
   } else {
     // Not in active trip, monitor for auto-start

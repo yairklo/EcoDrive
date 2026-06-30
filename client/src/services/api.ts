@@ -1,8 +1,9 @@
 import axios from 'axios';
 import { getToken } from './auth';
+import Constants from 'expo-constants';
 
-// Use local machine IP for testing React Native on physical device/emulator
-const API_URL = 'http://10.0.2.2:3000'; 
+const debuggerHost = Constants.expoConfig?.hostUri;
+const API_URL = debuggerHost ? `http://${debuggerHost.split(':')[0]}:3000` : 'http://10.0.2.2:3000'; 
 
 export const api = axios.create({
   baseURL: API_URL,

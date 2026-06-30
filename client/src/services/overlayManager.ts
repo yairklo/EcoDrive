@@ -82,6 +82,10 @@ export class OverlayManagerService {
     }
   }
 
+  public updateOverlayData(title: string, colorHex: string) {
+    this.showOverlay(title, colorHex);
+  }
+
   public hideOverlay() {
     try {
       NativeOverlay.hideOverlay();
