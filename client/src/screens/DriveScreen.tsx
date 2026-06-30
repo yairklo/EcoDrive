@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, Switch, TextInput, Keyboard, ActivityIndicator, DeviceEventEmitter, AppState } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, Switch, TextInput, Keyboard, ActivityIndicator, DeviceEventEmitter, AppState, Platform } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import Constants from 'expo-constants';
