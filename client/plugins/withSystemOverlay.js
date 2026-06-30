@@ -89,7 +89,7 @@ public class SystemOverlayModule extends ReactContextBaseJavaModule {
 
     @Override
     public String getName() {
-        return "SystemOverlay";
+        return "SystemOverlayModule";
     }
 
     @ReactMethod
@@ -202,17 +202,29 @@ public class SystemOverlayPackage implements ReactPackage {
     }
   ]);
 
-  // 3. Register Package in MainApplication.java
+  // 3. Register Package in MainApplication (Java or Kotlin)
   config = withMainApplication(config, (config) => {
     let mainApp = config.modResults.contents;
-    const importStatement = `import ${config.android.package || 'com.yairklo.client'}.SystemOverlayPackage;\n`;
-    if (!mainApp.includes('SystemOverlayPackage')) {
-      mainApp = mainApp.replace(/import com\.facebook\.react\.PackageList;/, `import com.facebook.react.PackageList;\n${importStatement}`);
-      mainApp = mainApp.replace(
-        /return packages;/,
-        `packages.add(new SystemOverlayPackage());\n      return packages;`
-      );
+    const isKotlin = config.modResults.language === 'kt' || mainApp.includes('fun getPackages()');
+    
+    if (isKotlin) {
+      const importStatement = `import ${config.android.package || 'com.yairklo.client'}.SystemOverlayPackage\n`;
+      if (!mainApp.includes('SystemOverlayPackage')) {
+        mainApp = mainApp.replace(/import com\.facebook\.react\.PackageList/, `import com.facebook.react.PackageList\n${importStatement}`);
+        if (mainApp.includes('add(MyReactNativePackage())')) {
+          mainApp = mainApp.replace(/add\(MyReactNativePackage\(\)\)/, `add(MyReactNativePackage())\n        add(SystemOverlayPackage())`);
+        } else {
+          mainApp = mainApp.replace(/return PackageList\(this\)\.packages\.apply\s*\{/, `return PackageList(this).packages.apply {\n        add(SystemOverlayPackage())`);
+        }
+      }
+    } else {
+      const importStatement = `import ${config.android.package || 'com.yairklo.client'}.SystemOverlayPackage;\n`;
+      if (!mainApp.includes('SystemOverlayPackage')) {
+        mainApp = mainApp.replace(/import com\.facebook\.react\.PackageList;/, `import com.facebook.react.PackageList;\n${importStatement}`);
+        mainApp = mainApp.replace(/return packages;/, `packages.add(new SystemOverlayPackage());\n      return packages;`);
+      }
     }
+    
     config.modResults.contents = mainApp;
     return config;
   });

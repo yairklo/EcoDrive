@@ -1,14 +1,14 @@
 import { NativeModules, DeviceEventEmitter, Platform } from 'react-native';
 
-const { SystemOverlay } = NativeModules;
+const { SystemOverlayModule } = NativeModules;
 
 let NativeOverlay: any;
 
 if (Platform.OS === 'android') {
-  if (!SystemOverlay) {
-    throw new Error("SystemOverlay NativeModule is missing or unregistered in Android! Ensure it is properly linked via the Config Plugin.");
+  if (!SystemOverlayModule) {
+    throw new Error("SystemOverlayModule NativeModule is missing or unregistered in Android! Ensure it is properly linked via the Config Plugin.");
   }
-  NativeOverlay = SystemOverlay;
+  NativeOverlay = SystemOverlayModule;
 } else {
   // Safe mock for iOS/Web if needed
   NativeOverlay = {
