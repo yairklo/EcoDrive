@@ -253,6 +253,7 @@ public class SystemOverlayModule extends ReactContextBaseJavaModule {
             try {
                 if (windowManager != null && overlayView != null && overlayView.getWindowToken() != null) {
                     windowManager.removeView(overlayView);
+                    overlayView = null;
                 }
             } catch (Exception e) {
                 e.printStackTrace();
