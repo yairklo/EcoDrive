@@ -19,9 +19,7 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.yairklo.client",
       "config": {
-        "googleMaps": {
-          "apiKey": "AIzaSyCGCbu8WV8KpU4m25b4vJN9YFnQwfiWalQ"
-        }
+        "googleMaps": {}
       },
       "permissions": [
         "ACCESS_COARSE_LOCATION",
