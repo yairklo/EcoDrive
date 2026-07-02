@@ -196,17 +196,20 @@ export async function processSingleLocation(loc: any) {
             colorHex: currentTier === 'red' ? '#dc2626' : '#f97316',
             speedDelta: `- ${Math.floor(speedKmh - safeSpeed)} km/h`,
             timePenalty: `Adds +${timeAddedMins} mins`,
-            savings: `Saves ₪${targetInsights?.moneySavedPerHour || '0'} / ${targetInsights?.savedLitersPer100km || '0'}L`
+            savings: `Saves ₪${targetInsights?.moneySavedPerHour || '0'} / ${targetInsights?.savedLitersPer100km || '0'}L`,
+            isSim: simActiveFlag
           });
         } else if (currentTier === 'yellow') {
           overlayManager.updateOverlayData({
             state: 'B',
-            colorHex: '#eab308'
+            colorHex: '#eab308',
+            isSim: simActiveFlag
           });
         } else {
           overlayManager.updateOverlayData({
             state: 'A',
-            colorHex: '#4ade80'
+            colorHex: '#4ade80',
+            isSim: simActiveFlag
           });
         }
       } catch (e) {

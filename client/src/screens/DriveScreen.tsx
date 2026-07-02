@@ -525,7 +525,7 @@ const styles = StyleSheet.create({
   },
   simToggleRow: {
     position: 'absolute',
-    top: -25,
+    top: 20,
     right: 20,
     flexDirection: 'row',
     alignItems: 'center',
@@ -535,6 +535,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: '#333',
+    zIndex: 100,
   },
   simToggleText: { color: '#9ca3af', marginRight: 10, fontWeight: '600', fontSize: 12 },
   matrixCard: {
