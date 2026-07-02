@@ -282,7 +282,7 @@ public class SystemOverlayModule extends ReactContextBaseJavaModule {
                         
                         // Sync UI with current auto script speed if auto is checked
                         if (simAutoCheck.isChecked() && data.hasKey("currentSpeed")) {
-                            int currentSpeed = data.getInt("currentSpeed");
+                            int currentSpeed = (int) data.getDouble("currentSpeed");
                             simSeekBar.setProgress(currentSpeed);
                             simSpeedText.setText("Sim Speed: " + currentSpeed + " km/h");
                         }
