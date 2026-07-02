@@ -298,6 +298,23 @@ public class SystemOverlayModule extends ReactContextBaseJavaModule {
 
                         @Override
                         public boolean onTouch(View v, MotionEvent event) {
+                            if (simSeekBar != null && simContainer.getVisibility() == View.VISIBLE) {
+                                int[] location = new int[2];
+                                simSeekBar.getLocationOnScreen(location);
+                                int left = location[0];
+                                int top = location[1];
+                                int right = left + simSeekBar.getWidth();
+                                int bottom = top + simSeekBar.getHeight();
+                                
+                                float rawX = event.getRawX();
+                                float rawY = event.getRawY();
+                                
+                                if (rawX >= left && rawX <= right && rawY >= top && rawY <= bottom) {
+                                    // Touch is inside the SeekBar bounds, let the SeekBar handle it
+                                    return false;
+                                }
+                            }
+
                             switch (event.getAction()) {
                                 case MotionEvent.ACTION_DOWN:
                                     initialX = params.x;
