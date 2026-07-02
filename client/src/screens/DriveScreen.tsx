@@ -95,6 +95,14 @@ export default function DriveScreen() {
         if (status === 'granted') {
           let location = await Location.getCurrentPositionAsync({});
           setCurrentCoords(location.coords);
+          
+          // Auto-center map once we get the initial location
+          if (mapRef.current) {
+            mapRef.current.animateCamera({
+              center: { latitude: location.coords.latitude, longitude: location.coords.longitude },
+              zoom: 15
+            });
+          }
         }
       } catch (e) {
         console.warn('Location Fetch Non-Blocking Error', e);
