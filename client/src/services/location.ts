@@ -17,8 +17,15 @@ export function setVehiclePhysics(massKg: number, efficiency: number) {
 
 export let isTripActive = false;
 export let simActiveFlag = false;
+export let currentSimSpeedKmh = 0;
+export let isSimAutoProfile = true;
 let silentUrbanProfile = false;
 const rollingBuffer: { timestamp: number; speed: number; acceleration: number }[] = [];
+
+DeviceEventEmitter.addListener('SIM_CONTROL_EVENT', (event: { speed: number, isAuto: boolean }) => {
+  currentSimSpeedKmh = event.speed;
+  isSimAutoProfile = event.isAuto;
+});
 
 export function setSimActiveFlag(active: boolean) {
   simActiveFlag = active;
@@ -259,23 +266,28 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
     if (isTripActive && simActiveFlag) {
       // Pipe simulation directly through the guaranteed background task
       simTick += 1;
-      let currentSpeedKmh = 0;
-      if (simTick <= 5) {
-        currentSpeedKmh = 20; 
-      } else if (simTick > 5 && simTick <= 10) {
-        currentSpeedKmh = 20 + ((simTick - 5) * 12.6);
-      } else if (simTick >= 11 && simTick <= 20) {
-        currentSpeedKmh = 95; 
-      } else if (simTick >= 21 && simTick <= 30) {
-        currentSpeedKmh = 110; 
-      } else if (simTick >= 31 && simTick <= 40) {
-        currentSpeedKmh = Math.max(0, 110 - ((simTick - 30) * 11)); 
+      let calculatedSpeedKmh = 0;
+      
+      if (isSimAutoProfile) {
+        if (simTick <= 5) {
+          calculatedSpeedKmh = 20; 
+        } else if (simTick > 5 && simTick <= 10) {
+          calculatedSpeedKmh = 20 + ((simTick - 5) * 12.6);
+        } else if (simTick >= 11 && simTick <= 20) {
+          calculatedSpeedKmh = 95; 
+        } else if (simTick >= 21 && simTick <= 30) {
+          calculatedSpeedKmh = 110; 
+        } else if (simTick >= 31 && simTick <= 40) {
+          calculatedSpeedKmh = Math.max(0, 110 - ((simTick - 30) * 11)); 
+        }
+      } else {
+        calculatedSpeedKmh = currentSimSpeedKmh;
       }
       
       const mockLoc: any = {
         timestamp: Date.now(),
         coords: { 
-          speed: currentSpeedKmh / 3.6,
+          speed: calculatedSpeedKmh / 3.6,
           latitude: 32.0853,
           longitude: 34.7818,
           heading: 90

@@ -76,6 +76,9 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
+import android.widget.SeekBar;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.graphics.drawable.GradientDrawable;
 
 import com.facebook.react.bridge.Promise;
@@ -83,6 +86,9 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableMap;
+import com.facebook.react.bridge.WritableMap;
+import com.facebook.react.bridge.Arguments;
+import com.facebook.react.modules.core.DeviceEventManagerModule;
 
 public class SystemOverlayModule extends ReactContextBaseJavaModule {
     private WindowManager windowManager;
@@ -90,6 +96,9 @@ public class SystemOverlayModule extends ReactContextBaseJavaModule {
     private TextView titleView;
     private TextView line2View;
     private TextView line3View;
+    private android.widget.LinearLayout simContainer;
+    private SeekBar simSeekBar;
+    private CheckBox simAutoCheck;
 
     public SystemOverlayModule(ReactApplicationContext reactContext) {
         super(reactContext);
@@ -160,6 +169,55 @@ public class SystemOverlayModule extends ReactContextBaseJavaModule {
                     layout.addView(line2View);
                     layout.addView(line3View);
 
+                    simContainer = new android.widget.LinearLayout(appContext);
+                    simContainer.setOrientation(android.widget.LinearLayout.VERTICAL);
+                    simContainer.setGravity(Gravity.CENTER);
+                    simContainer.setVisibility(View.GONE);
+
+                    simSeekBar = new SeekBar(appContext);
+                    simSeekBar.setMax(150);
+                    simSeekBar.setProgress(0);
+                    
+                    simAutoCheck = new CheckBox(appContext);
+                    simAutoCheck.setText("Auto Script");
+                    simAutoCheck.setTextColor(Color.WHITE);
+                    simAutoCheck.setChecked(true);
+                    
+                    simContainer.addView(simAutoCheck);
+                    simContainer.addView(simSeekBar);
+                    layout.addView(simContainer);
+
+                    simSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                        @Override
+                        public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                            if (fromUser) {
+                                WritableMap event = Arguments.createMap();
+                                event.putInt("speed", progress);
+                                event.putBoolean("isAuto", simAutoCheck.isChecked());
+                                getReactApplicationContext()
+                                    .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                                    .emit("SIM_CONTROL_EVENT", event);
+                            }
+                        }
+                        @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+                        @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+                    });
+
+                    simAutoCheck.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                        @Override
+                        public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                            simSeekBar.setEnabled(!isChecked);
+                            WritableMap event = Arguments.createMap();
+                            event.putInt("speed", simSeekBar.getProgress());
+                            event.putBoolean("isAuto", isChecked);
+                            getReactApplicationContext()
+                                .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                                .emit("SIM_CONTROL_EVENT", event);
+                        }
+                    });
+
+                    simSeekBar.setEnabled(!simAutoCheck.isChecked());
+
                     WindowManager.LayoutParams params = new WindowManager.LayoutParams(
                             WindowManager.LayoutParams.WRAP_CONTENT,
                             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -203,6 +261,17 @@ public class SystemOverlayModule extends ReactContextBaseJavaModule {
 
                 String state = data.hasKey("state") ? data.getString("state") : "A";
                 String colorHex = data.hasKey("colorHex") ? data.getString("colorHex") : "#4ade80";
+                boolean isSim = data.hasKey("isSim") ? data.getBoolean("isSim") : false;
+
+                if (simContainer != null) {
+                    simContainer.setVisibility(isSim ? View.VISIBLE : View.GONE);
+                    if (isSim) {
+                        android.widget.LinearLayout.LayoutParams seekParams = new android.widget.LinearLayout.LayoutParams(
+                            300, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+                        );
+                        simSeekBar.setLayoutParams(seekParams);
+                    }
+                }
 
                 GradientDrawable shape = new GradientDrawable();
                 

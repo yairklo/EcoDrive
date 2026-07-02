@@ -140,7 +140,7 @@ export default function DriveScreen() {
   useEffect(() => {
     if (active) {
       // 3. Support Multi-Trip Overlay Lifecycle
-      overlayManager.updateOverlayData({ state: 'A', colorHex: '#4ade80' });
+      overlayManager.updateOverlayData({ state: 'A', colorHex: '#4ade80', isSim: simActive });
       
       metricsRef.current = setInterval(() => {
         if (tripStartTimeRef.current) {
@@ -344,6 +344,7 @@ export default function DriveScreen() {
           style={StyleSheet.absoluteFillObject}
           customMapStyle={darkMapStyle}
           showsUserLocation={true}
+          showsMyLocationButton={false}
           initialRegion={{
             latitude: currentCoords?.latitude || 32.0853,
             longitude: currentCoords?.longitude || 34.7818,
@@ -353,6 +354,21 @@ export default function DriveScreen() {
         >
           {targetCoords && <Marker coordinate={targetCoords} pinColor="#4ade80" />}
         </MapView>
+        
+        {/* Custom Location Button */}
+        <TouchableOpacity 
+          style={styles.myLocationBtn}
+          onPress={() => {
+            if (currentCoords && mapRef.current) {
+              mapRef.current.animateCamera({
+                center: { latitude: currentCoords.latitude, longitude: currentCoords.longitude },
+                zoom: 15
+              });
+            }
+          }}
+        >
+          <Ionicons name="locate" size={24} color="#1e1e1e" />
+        </TouchableOpacity>
         
         {/* Search Overlay */}
         {!active && (
@@ -460,6 +476,22 @@ export default function DriveScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#121212' },
   mapContainer: { flex: 1, position: 'relative' },
+  myLocationBtn: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    backgroundColor: '#fff',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    zIndex: 10,
+  },
   searchOverlay: {
     position: 'absolute',
     top: 50,
