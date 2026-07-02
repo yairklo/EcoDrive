@@ -225,9 +225,10 @@ public class SystemOverlayModule extends ReactContextBaseJavaModule {
                     int seekPad = (int) (12 * appContext.getResources().getDisplayMetrics().density);
                     simSeekBar.setPadding(seekPad, seekPad, seekPad, seekPad);
 
-                    // Slider should stretch 70% width
+                    // Slider needs a fixed width because the root WindowManager uses WRAP_CONTENT
+                    int fixedSliderWidth = (int) (180 * appContext.getResources().getDisplayMetrics().density);
                     android.widget.LinearLayout.LayoutParams seekParams = new android.widget.LinearLayout.LayoutParams(
-                        0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f
+                        fixedSliderWidth, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
                     );
                     simSeekBar.setLayoutParams(seekParams);
 
@@ -390,7 +391,8 @@ public class SystemOverlayModule extends ReactContextBaseJavaModule {
                     metricsContainer.setBackground(metricsShape);
                     metricsContainer.setPadding(40, 40, 40, 40);
                     
-                    titleView.setVisibility(View.GONE);
+                    titleView.setVisibility(View.VISIBLE);
+                    titleView.setText("ECO");
                     line2View.setVisibility(View.GONE);
                     line3View.setVisibility(View.GONE);
                 } else if ("B".equals(state)) {
@@ -399,7 +401,8 @@ public class SystemOverlayModule extends ReactContextBaseJavaModule {
                     metricsContainer.setBackground(metricsShape);
                     metricsContainer.setPadding(40, 40, 40, 40);
                     
-                    titleView.setVisibility(View.GONE);
+                    titleView.setVisibility(View.VISIBLE);
+                    titleView.setText("ECO");
                     line2View.setVisibility(View.GONE);
                     line3View.setVisibility(View.GONE);
                 } else {
