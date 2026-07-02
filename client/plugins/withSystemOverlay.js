@@ -201,6 +201,19 @@ public class SystemOverlayModule extends ReactContextBaseJavaModule {
                     simSeekBar.setMax(150);
                     simSeekBar.setProgress(0);
                     
+                    // Style the SeekBar
+                    GradientDrawable thumbShape = new GradientDrawable();
+                    thumbShape.setShape(GradientDrawable.OVAL);
+                    int thumbSize = (int) (30 * appContext.getResources().getDisplayMetrics().density); // 30dp size
+                    thumbShape.setSize(thumbSize, thumbSize);
+                    thumbShape.setColor(Color.parseColor("#4ade80"));
+                    simSeekBar.setThumb(thumbShape);
+                    simSeekBar.getProgressDrawable().setColorFilter(Color.parseColor("#4ade80"), android.graphics.PorterDuff.Mode.SRC_IN);
+                    
+                    // Expand hit slop / touch area via padding
+                    int seekPad = (int) (20 * appContext.getResources().getDisplayMetrics().density);
+                    simSeekBar.setPadding(seekPad, seekPad, seekPad, seekPad);
+                    
                     simAutoCheck = new CheckBox(appContext);
                     simAutoCheck.setText("Auto Script");
                     simAutoCheck.setTextColor(Color.WHITE);
