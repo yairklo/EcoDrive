@@ -100,6 +100,7 @@ public class SystemOverlayModule extends ReactContextBaseJavaModule {
     private SeekBar simSeekBar;
     private CheckBox simAutoCheck;
     private TextView simSpeedText;
+    private android.widget.Button closeBtn;
 
     public SystemOverlayModule(ReactApplicationContext reactContext) {
         super(reactContext);
@@ -150,21 +151,34 @@ public class SystemOverlayModule extends ReactContextBaseJavaModule {
                     layout.setGravity(Gravity.CENTER);
                     overlayView = layout;
 
+                    int p20 = (int) (20 * appContext.getResources().getDisplayMetrics().density);
+                    overlayView.setPadding(p20, p20, p20, p20);
+
+                    int m15 = (int) (15 * appContext.getResources().getDisplayMetrics().density);
+                    android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(
+                            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+                    );
+                    lp.setMargins(0, m15, 0, m15);
+
                     titleView = new TextView(appContext);
                     titleView.setTextSize(16);
                     titleView.setTextColor(Color.WHITE);
                     titleView.setGravity(Gravity.CENTER);
                     titleView.setTypeface(null, android.graphics.Typeface.BOLD);
+                    titleView.setLayoutParams(lp);
 
                     line2View = new TextView(appContext);
                     line2View.setTextSize(14);
                     line2View.setTextColor(Color.WHITE);
                     line2View.setGravity(Gravity.CENTER);
+                    line2View.setLayoutParams(lp);
 
                     line3View = new TextView(appContext);
                     line3View.setTextSize(14);
                     line3View.setTextColor(Color.WHITE);
                     line3View.setGravity(Gravity.CENTER);
+                    line3View.setLayoutParams(lp);
 
                     layout.addView(titleView);
                     layout.addView(line2View);
@@ -179,7 +193,9 @@ public class SystemOverlayModule extends ReactContextBaseJavaModule {
                     simSpeedText.setText("Sim Speed: 0 km/h");
                     simSpeedText.setTextColor(Color.WHITE);
                     simSpeedText.setGravity(Gravity.CENTER);
+                    simSpeedText.setTextSize(48);
                     simSpeedText.setTypeface(null, android.graphics.Typeface.BOLD);
+                    simSpeedText.setLayoutParams(lp);
 
                     simSeekBar = new SeekBar(appContext);
                     simSeekBar.setMax(150);
@@ -194,6 +210,27 @@ public class SystemOverlayModule extends ReactContextBaseJavaModule {
                     simContainer.addView(simAutoCheck);
                     simContainer.addView(simSeekBar);
                     layout.addView(simContainer);
+
+                    closeBtn = new android.widget.Button(appContext);
+                    closeBtn.setText("CLOSE");
+                    closeBtn.setTextSize(18);
+                    closeBtn.setTypeface(null, android.graphics.Typeface.BOLD);
+                    closeBtn.setTextColor(Color.WHITE);
+                    closeBtn.setLayoutParams(lp);
+
+                    GradientDrawable closeShape = new GradientDrawable();
+                    closeShape.setShape(GradientDrawable.RECTANGLE);
+                    int r30 = (int) (30 * appContext.getResources().getDisplayMetrics().density);
+                    closeShape.setCornerRadius(r30);
+                    closeShape.setColor(Color.parseColor("#333333"));
+                    closeBtn.setBackground(closeShape);
+
+                    int p12 = (int) (12 * appContext.getResources().getDisplayMetrics().density);
+                    int p16 = (int) (16 * appContext.getResources().getDisplayMetrics().density);
+                    closeBtn.setPadding(p16, p12, p16, p12);
+
+                    closeBtn.setOnClickListener(v -> hideOverlay());
+                    layout.addView(closeBtn);
 
                     simSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                         @Override
@@ -289,44 +326,29 @@ public class SystemOverlayModule extends ReactContextBaseJavaModule {
                     }
                 }
 
-                GradientDrawable shape = new GradientDrawable();
-                
-                if ("A".equals(state)) {
-                    shape.setShape(GradientDrawable.OVAL);
-                    shape.setColor(Color.TRANSPARENT);
-                    // 4dp green border stroke
+                    GradientDrawable shape = new GradientDrawable();
+                    shape.setShape(GradientDrawable.RECTANGLE);
+                    int r16 = (int) (16 * appContext.getResources().getDisplayMetrics().density);
+                    shape.setCornerRadius(r16);
+                    shape.setColor(Color.parseColor("#D91E1E1E"));
+
                     int strokeWidth = (int) (4 * appContext.getResources().getDisplayMetrics().density);
                     shape.setStroke(strokeWidth, Color.parseColor(colorHex));
                     overlayView.setBackground(shape);
-                    overlayView.setPadding(40, 40, 40, 40);
-                    
-                    titleView.setVisibility(View.GONE);
-                    line2View.setVisibility(View.GONE);
-                    line3View.setVisibility(View.GONE);
-                } else if ("B".equals(state)) {
-                    shape.setShape(GradientDrawable.OVAL);
-                    shape.setColor(Color.parseColor(colorHex));
-                    overlayView.setBackground(shape);
-                    overlayView.setPadding(40, 40, 40, 40);
-                    
-                    titleView.setVisibility(View.GONE);
-                    line2View.setVisibility(View.GONE);
-                    line3View.setVisibility(View.GONE);
-                } else {
-                    shape.setShape(GradientDrawable.RECTANGLE);
-                    shape.setCornerRadius(30);
-                    shape.setColor(Color.parseColor(colorHex));
-                    overlayView.setBackground(shape);
-                    overlayView.setPadding(50, 30, 50, 30);
-                    
-                    titleView.setVisibility(View.VISIBLE);
-                    line2View.setVisibility(View.VISIBLE);
-                    line3View.setVisibility(View.VISIBLE);
-                    
-                    titleView.setText((data.hasKey("speedDelta") ? data.getString("speedDelta") : ""));
-                    line2View.setText((data.hasKey("timePenalty") ? data.getString("timePenalty") : ""));
-                    line3View.setText((data.hasKey("savings") ? data.getString("savings") : ""));
-                }
+
+                    if ("A".equals(state) || "B".equals(state)) {
+                        titleView.setVisibility(View.GONE);
+                        line2View.setVisibility(View.GONE);
+                        line3View.setVisibility(View.GONE);
+                    } else {
+                        titleView.setVisibility(View.VISIBLE);
+                        line2View.setVisibility(View.VISIBLE);
+                        line3View.setVisibility(View.VISIBLE);
+                        
+                        titleView.setText((data.hasKey("speedDelta") ? data.getString("speedDelta") : ""));
+                        line2View.setText((data.hasKey("timePenalty") ? data.getString("timePenalty") : ""));
+                        line3View.setText((data.hasKey("savings") ? data.getString("savings") : ""));
+                    }
 
             } catch (Exception e) {
                 e.printStackTrace();
