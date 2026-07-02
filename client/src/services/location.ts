@@ -63,11 +63,15 @@ export async function processSingleLocation(loc: any) {
     // 1. Fetch OSRM Road Metadata (Safeguarded against network hang)
     const bearing = loc.coords.heading || 0;
     try {
-      roadData = await OSRMService.getRoadAttributes({
-        latitude: loc.coords.latitude,
-        longitude: loc.coords.longitude,
-        bearing
-      });
+      if (simActiveFlag) {
+        roadData.roadClassification = speedKmh > 70 ? 'Highway' : 'Urban';
+      } else {
+        roadData = await OSRMService.getRoadAttributes({
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+          bearing
+        });
+      }
     } catch (e) {
       console.warn('OSRM request hard-failed, using local mock to unblock background loop');
     }
@@ -197,19 +201,22 @@ export async function processSingleLocation(loc: any) {
             speedDelta: `- ${Math.floor(speedKmh - safeSpeed)} km/h`,
             timePenalty: `Adds +${timeAddedMins} mins`,
             savings: `Saves ₪${targetInsights?.moneySavedPerHour || '0'} / ${targetInsights?.savedLitersPer100km || '0'}L`,
-            isSim: simActiveFlag
+            isSim: simActiveFlag,
+            currentSpeed: Math.floor(speedKmh)
           });
         } else if (currentTier === 'yellow') {
           overlayManager.updateOverlayData({
             state: 'B',
             colorHex: '#eab308',
-            isSim: simActiveFlag
+            isSim: simActiveFlag,
+            currentSpeed: Math.floor(speedKmh)
           });
         } else {
           overlayManager.updateOverlayData({
             state: 'A',
             colorHex: '#4ade80',
-            isSim: simActiveFlag
+            isSim: simActiveFlag,
+            currentSpeed: Math.floor(speedKmh)
           });
         }
       } catch (e) {

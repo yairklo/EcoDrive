@@ -99,6 +99,7 @@ public class SystemOverlayModule extends ReactContextBaseJavaModule {
     private android.widget.LinearLayout simContainer;
     private SeekBar simSeekBar;
     private CheckBox simAutoCheck;
+    private TextView simSpeedText;
 
     public SystemOverlayModule(ReactApplicationContext reactContext) {
         super(reactContext);
@@ -174,6 +175,12 @@ public class SystemOverlayModule extends ReactContextBaseJavaModule {
                     simContainer.setGravity(Gravity.CENTER);
                     simContainer.setVisibility(View.GONE);
 
+                    simSpeedText = new TextView(appContext);
+                    simSpeedText.setText("Sim Speed: 0 km/h");
+                    simSpeedText.setTextColor(Color.WHITE);
+                    simSpeedText.setGravity(Gravity.CENTER);
+                    simSpeedText.setTypeface(null, android.graphics.Typeface.BOLD);
+
                     simSeekBar = new SeekBar(appContext);
                     simSeekBar.setMax(150);
                     simSeekBar.setProgress(0);
@@ -183,6 +190,7 @@ public class SystemOverlayModule extends ReactContextBaseJavaModule {
                     simAutoCheck.setTextColor(Color.WHITE);
                     simAutoCheck.setChecked(true);
                     
+                    simContainer.addView(simSpeedText);
                     simContainer.addView(simAutoCheck);
                     simContainer.addView(simSeekBar);
                     layout.addView(simContainer);
@@ -190,6 +198,7 @@ public class SystemOverlayModule extends ReactContextBaseJavaModule {
                     simSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                         @Override
                         public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                            simSpeedText.setText("Sim Speed: " + progress + " km/h");
                             if (fromUser) {
                                 WritableMap event = Arguments.createMap();
                                 event.putInt("speed", progress);
@@ -270,6 +279,13 @@ public class SystemOverlayModule extends ReactContextBaseJavaModule {
                             300, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
                         );
                         simSeekBar.setLayoutParams(seekParams);
+                        
+                        // Sync UI with current auto script speed if auto is checked
+                        if (simAutoCheck.isChecked() && data.hasKey("currentSpeed")) {
+                            int currentSpeed = data.getInt("currentSpeed");
+                            simSeekBar.setProgress(currentSpeed);
+                            simSpeedText.setText("Sim Speed: " + currentSpeed + " km/h");
+                        }
                     }
                 }
 
