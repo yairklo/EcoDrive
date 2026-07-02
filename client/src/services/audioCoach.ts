@@ -35,14 +35,29 @@ class AudioCoachService {
   private lastPlayedMap: Record<string, number> = {};
   private readonly THROTTLE_MS = 60000; // 60 seconds
 
+  private getLocaleText(key: string): string {
+    const locale = Localization.getLocales ? Localization.getLocales()[0].languageTag : (Localization.locale || 'en-US');
+    const isHebrew = locale.startsWith('he');
+    
+    if (key === 'high_speed') {
+      return isHebrew 
+        ? "האטה לתשעים וחמישה קמ״ש תחסוך לך כסף בנסיעה הזו, עם עיכוב קל בלבד."
+        : "Slowing down to 95 kilometers per hour will save you money on this trip with a minor time tradeoff.";
+    }
+    if (key === 'acceleration') {
+      return isHebrew ? "בעדינות עם הגז." : "Gentle on the throttle.";
+    }
+    if (key === 'urban_accel') {
+      return isHebrew ? "האצה חדה מדי לעיר." : "Acceleration is too sharp for city driving.";
+    }
+    return "";
+  }
+
   public async speakHighSpeedAlert() {
     const settings = await getSettings();
     if (!settings.masterVoice || !settings.highSpeedAudio) return;
 
-    this.speakThrottled(
-      'high_speed',
-      "Slowing down to 95 kilometers per hour will save you money on this trip with a minor time tradeoff."
-    );
+    this.speakThrottled('high_speed', this.getLocaleText('high_speed'));
   }
 
   public async speakAccelerationAlert(muted: boolean = false) {
@@ -50,7 +65,7 @@ class AudioCoachService {
     const settings = await getSettings();
     if (!settings.masterVoice || !settings.accelerationAudio) return;
 
-    this.speakThrottled('acceleration', "Gentle on the throttle.");
+    this.speakThrottled('acceleration', this.getLocaleText('acceleration'));
   }
 
   public async speakUrbanAccelerationAlert() {
@@ -63,7 +78,7 @@ class AudioCoachService {
 
     if (now - lastPlayed >= 20000) {
       const locale = Localization.getLocales ? Localization.getLocales()[0].languageTag : Localization.locale;
-      Speech.speak("האצה חדה מדי לעיר", { language: locale || 'en-US' });
+      Speech.speak(this.getLocaleText('urban_accel'), { language: locale || 'en-US' });
       this.lastPlayedMap['urban_accel'] = now;
     }
   }
