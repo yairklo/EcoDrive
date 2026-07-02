@@ -163,20 +163,10 @@ export async function processSingleLocation(loc: any) {
       continuousHighSpeedStart = 0;
     }
 
+    // Notification spam removed by user request
     if (currentTier !== lastTier && lastTier !== '') {
-      if (AppState.currentState === 'background' && !silentUrbanProfile) {
-        getSettings().then(settings => {
-          if (settings.headsUpBanners) {
-            Notifications.scheduleNotificationAsync({
-              content: {
-                title: '💡 Eco-Coach',
-                body: `Velocity tier changed to ${currentTier.toUpperCase()}. Drop your speed to save on this target journey!`,
-              },
-              trigger: null,
-            }).catch(() => {});
-          }
-        });
-      }
+      // Logic for push notifications on color shifts has been removed to prevent spam.
+      // The floating widget and voice feedback remain active.
     }
     lastTier = currentTier;
 
