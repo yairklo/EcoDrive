@@ -1,6 +1,17 @@
 export default ({ config }) => {
   return {
     ...config,
+    plugins: [
+      'expo-secure-store',
+      [
+        'expo-location',
+        {
+          isAndroidBackgroundLocationEnabled: true
+        }
+      ],
+      './plugins/withSystemOverlay.js',
+      'expo-localization'
+    ],
     android: {
       ...config.android,
       config: {

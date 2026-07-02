@@ -1,4 +1,5 @@
 import * as Speech from 'expo-speech';
+import * as Localization from 'expo-localization';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const SETTINGS_KEY = '@ecodrive_settings';
@@ -61,7 +62,8 @@ class AudioCoachService {
     const lastPlayed = this.lastPlayedMap['urban_accel'] || 0;
 
     if (now - lastPlayed >= 20000) {
-      Speech.speak("האצה חדה מדי לעיר", { language: 'he' });
+      const locale = Localization.getLocales ? Localization.getLocales()[0].languageTag : Localization.locale;
+      Speech.speak("האצה חדה מדי לעיר", { language: locale || 'en-US' });
       this.lastPlayedMap['urban_accel'] = now;
     }
   }
@@ -71,7 +73,8 @@ class AudioCoachService {
     const lastPlayed = this.lastPlayedMap[key] || 0;
 
     if (now - lastPlayed >= this.THROTTLE_MS) {
-      Speech.speak(text, { language: 'en' });
+      const locale = Localization.getLocales ? Localization.getLocales()[0].languageTag : Localization.locale;
+      Speech.speak(text, { language: locale || 'en-US' });
       this.lastPlayedMap[key] = now;
     }
   }
