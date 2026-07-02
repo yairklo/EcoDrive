@@ -12,9 +12,9 @@ type Props = {
 
 export default function RefuelLogScreen({ route, navigation }: Props) {
   const { vehicleId, isOnboarding } = route?.params || { vehicleId: 'local-test-uuid', isOnboarding: false };
-  const [odometer, setOdometer] = useState('');
-  const [liters, setLiters] = useState('');
-  const [cost, setCost] = useState('');
+  const [odometer, setOdometer] = useState('45000');
+  const [liters, setLiters] = useState('40.5');
+  const [cost, setCost] = useState('1.50');
   const [loading, setLoading] = useState(false);
 
   const submitLog = async () => {
